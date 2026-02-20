@@ -68,6 +68,45 @@ app.use('/api/gov-contracts', govContractsRouter);
 app.use('/api/lobbying', lobbyingRouter);
 app.use('/api/dark-pool', darkPoolRouter);
 
+// Diagnostic endpoint — tests Yahoo connectivity from server
+app.get('/api/health', async (req, res) => {
+  const results = {};
+  try {
+    const { getYahooCrumb, USER_AGENT } = await import('./lib/yahooCrumb.js');
+
+    // Test 1: Can we get a crumb?
+    try {
+      const { crumb, cookie } = await getYahooCrumb();
+      results.crumb = { ok: true, crumbLength: crumb.length };
+    } catch (e) {
+      results.crumb = { ok: false, error: e.message };
+    }
+
+    // Test 2: Can we hit the batch quote API?
+    try {
+      const { fetchBatchQuotes } = await import('./lib/yahooFetch.js');
+      const quotes = await fetchBatchQuotes(['AAPL']);
+      results.batchQuote = { ok: quotes.has('AAPL'), price: quotes.get('AAPL')?.price || null };
+    } catch (e) {
+      results.batchQuote = { ok: false, error: e.message };
+    }
+
+    // Test 3: Can we hit the chart API?
+    try {
+      const chartRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d', {
+        headers: { 'User-Agent': USER_AGENT },
+        signal: AbortSignal.timeout(8000),
+      });
+      results.chartApi = { ok: chartRes.ok, status: chartRes.status };
+    } catch (e) {
+      results.chartApi = { ok: false, error: e.message };
+    }
+  } catch (e) {
+    results.importError = e.message;
+  }
+  res.json(results);
+});
+
 app.use(errorHandler);
 
 export default app;
