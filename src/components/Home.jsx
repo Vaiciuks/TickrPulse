@@ -688,7 +688,7 @@ function getScoreColor(score) {
   if (score <= 40) return '#f5652a';
   if (score <= 60) return '#f5a623';
   if (score <= 80) return '#8bc34a';
-  return '#00c853';
+  return '#00d66b';
 }
 
 function FearGreedGauge({ active, futures }) {
@@ -763,7 +763,7 @@ function FearGreedGauge({ active, futures }) {
     { start: 20, end: 40, color: '#f5652a' },
     { start: 40, end: 60, color: '#f5a623' },
     { start: 60, end: 80, color: '#8bc34a' },
-    { start: 80, end: 100, color: '#00c853' },
+    { start: 80, end: 100, color: '#00d66b' },
   ];
 
   const arcPath = (startPct, endPct, r) => {

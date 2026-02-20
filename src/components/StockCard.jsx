@@ -88,7 +88,7 @@ export default function StockCard({ stock, chartData, onClick, isSelected, isFoc
     >
       <div className="stock-card-header">
         <div className="stock-card-symbol-group">
-          <StockLogo symbol={stock.symbol} size={16} />
+          <StockLogo symbol={stock.symbol} size={22} />
           <div className="stock-card-symbol">{stock.symbol}</div>
           {earningsSoon && (
             <span className="stock-card-earnings" title={`Earnings in ${daysAway}d`}>

@@ -17,6 +17,119 @@ async function fetchJSON(url) {
   return res.json();
 }
 
+function fmtRev(val) {
+  if (val == null) return '--';
+  if (Math.abs(val) >= 1e9) return `$${(val / 1e9).toFixed(2)}B`;
+  if (Math.abs(val) >= 1e6) return `$${(val / 1e6).toFixed(0)}M`;
+  return `$${val.toLocaleString()}`;
+}
+
+function generateHighlights({ epsHistory, revenueHistory, recommendation, streak, financialData }) {
+  const highlights = [];
+
+  // 1. Latest Quarter Results
+  const latestEps = [...epsHistory].filter(q => q.actual != null).pop();
+  const latestRev = [...revenueHistory].filter(q => q.revenueActual != null).pop();
+
+  if (latestEps || latestRev) {
+    const parts = [];
+    const qLabel = latestEps?.quarter && latestEps?.year
+      ? `Q${latestEps.quarter} ${latestEps.year}` : 'Latest Quarter';
+
+    if (latestEps?.actual != null && latestEps?.estimate != null) {
+      const verb = latestEps.beat ? 'beat' : latestEps.actual < latestEps.estimate ? 'missed' : 'met';
+      const surprise = latestEps.surprisePercent != null
+        ? ` by ${Math.abs(latestEps.surprisePercent).toFixed(1)}%` : '';
+      parts.push(`EPS of $${latestEps.actual.toFixed(2)} ${verb} the estimate of $${latestEps.estimate.toFixed(2)}${surprise}`);
+    }
+    if (latestRev?.revenueActual != null && latestRev?.revenueEstimate != null) {
+      const verb = latestRev.beat ? 'beat' : latestRev.revenueActual < latestRev.revenueEstimate ? 'missed' : 'met';
+      parts.push(`Revenue of ${fmtRev(latestRev.revenueActual)} ${verb} the estimate of ${fmtRev(latestRev.revenueEstimate)}`);
+    } else if (latestRev?.revenueActual != null) {
+      parts.push(`Revenue came in at ${fmtRev(latestRev.revenueActual)}`);
+    }
+
+    if (parts.length > 0) {
+      highlights.push({ title: `${qLabel} Results`, detail: parts.join('. ') + '.' });
+    }
+  }
+
+  // 2. Revenue Growth (YoY comparison)
+  const revsWithActual = revenueHistory.filter(q => q.revenueActual != null);
+  if (revsWithActual.length >= 4) {
+    const current = revsWithActual[revsWithActual.length - 1];
+    const yearAgo = revsWithActual.find(
+      q => q.quarter === current.quarter && q.year === current.year - 1
+    );
+    if (current.revenueActual && yearAgo?.revenueActual) {
+      const growth = ((current.revenueActual - yearAgo.revenueActual) / Math.abs(yearAgo.revenueActual)) * 100;
+      const dir = growth >= 0 ? 'grew' : 'declined';
+      highlights.push({
+        title: 'Revenue Growth',
+        detail: `Revenue ${dir} ${Math.abs(growth).toFixed(1)}% year-over-year from ${fmtRev(yearAgo.revenueActual)} to ${fmtRev(current.revenueActual)}.`,
+      });
+    }
+  }
+
+  // 3. Profitability (from Yahoo financialData)
+  if (financialData) {
+    const parts = [];
+    if (financialData.profitMargins != null) {
+      parts.push(`profit margin of ${(financialData.profitMargins * 100).toFixed(1)}%`);
+    }
+    if (financialData.grossMargins != null) {
+      parts.push(`gross margin of ${(financialData.grossMargins * 100).toFixed(1)}%`);
+    }
+    if (financialData.revenueGrowth != null) {
+      const g = (financialData.revenueGrowth * 100).toFixed(1);
+      parts.push(`quarterly revenue growth of ${g >= 0 ? '+' : ''}${g}%`);
+    }
+    if (parts.length > 0) {
+      const joined = parts.join(', ');
+      highlights.push({
+        title: 'Profitability',
+        detail: joined.charAt(0).toUpperCase() + joined.slice(1) + '.',
+      });
+    }
+  }
+
+  // 4. Earnings Consistency (streak)
+  if (streak?.type !== 'none' && streak?.count >= 2) {
+    const verb = streak.type === 'beat' ? 'beaten' : streak.type === 'miss' ? 'missed' : 'met';
+    highlights.push({
+      title: 'Earnings Consistency',
+      detail: `The company has ${verb} analyst EPS estimates for ${streak.count} consecutive quarters.`,
+    });
+  }
+
+  // 5. Analyst Sentiment
+  if (recommendation) {
+    const total = recommendation.strongBuy + recommendation.buy + recommendation.hold + recommendation.sell + recommendation.strongSell;
+    if (total > 0) {
+      const bullish = recommendation.strongBuy + recommendation.buy;
+      const bullishPct = ((bullish / total) * 100).toFixed(0);
+      const consensus = bullishPct >= 70 ? 'Strong Buy'
+        : bullishPct >= 50 ? 'Buy' : bullishPct >= 30 ? 'Hold' : 'Sell';
+      highlights.push({
+        title: 'Analyst Consensus',
+        detail: `${bullishPct}% of ${total} analysts rate this stock Buy or Strong Buy. Overall consensus: ${consensus}.`,
+      });
+    }
+  }
+
+  // 6. Price Target (from Yahoo financialData)
+  if (financialData?.targetMeanPrice && financialData?.currentPrice) {
+    const upside = ((financialData.targetMeanPrice - financialData.currentPrice) / financialData.currentPrice) * 100;
+    const dir = upside >= 0 ? 'upside' : 'downside';
+    highlights.push({
+      title: 'Price Target',
+      detail: `Mean analyst price target of $${financialData.targetMeanPrice.toFixed(2)} implies ${Math.abs(upside).toFixed(1)}% ${dir} from the current price of $${financialData.currentPrice.toFixed(2)}.`,
+    });
+  }
+
+  return highlights;
+}
+
 function computeStreak(quarters) {
   if (!quarters.length) return { type: 'none', count: 0 };
 
@@ -68,10 +181,10 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
     const fromStr = from.toISOString().split('T')[0];
     const toStr = to.toISOString().split('T')[0];
 
-    // Yahoo Finance for quarterly revenue history + earnings trend (for revenue estimates)
+    // Yahoo Finance for quarterly revenue history + earnings trend + financial data
     async function fetchYahooQuarterly() {
       try {
-        const url = `${YAHOO_SUMMARY}/${sym}?modules=incomeStatementHistoryQuarterly,earningsHistory,earningsTrend`;
+        const url = `${YAHOO_SUMMARY}/${sym}?modules=incomeStatementHistoryQuarterly,earningsHistory,earningsTrend,financialData`;
         return await yahooAuthFetch(url);
       } catch {
         return null;
@@ -312,6 +425,25 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
       .map(q => ({ ...q, period: q.period }));
     const streak = computeStreak(streakInput);
 
+    // Extract Yahoo financialData for highlights
+    const rawFinancial = yahooData?.quoteSummary?.result?.[0]?.financialData;
+    const financialData = rawFinancial ? {
+      currentPrice: rawFinancial.currentPrice?.raw ?? null,
+      targetMeanPrice: rawFinancial.targetMeanPrice?.raw ?? null,
+      targetHighPrice: rawFinancial.targetHighPrice?.raw ?? null,
+      targetLowPrice: rawFinancial.targetLowPrice?.raw ?? null,
+      profitMargins: rawFinancial.profitMargins?.raw ?? null,
+      grossMargins: rawFinancial.grossMargins?.raw ?? null,
+      operatingMargins: rawFinancial.operatingMargins?.raw ?? null,
+      revenueGrowth: rawFinancial.revenueGrowth?.raw ?? null,
+      earningsGrowth: rawFinancial.earningsGrowth?.raw ?? null,
+    } : null;
+
+    // Generate highlights from all collected data
+    const highlights = generateHighlights({
+      epsHistory, revenueHistory, recommendation, streak, financialData,
+    });
+
     res.json({
       symbol: symbol.toUpperCase(),
       epsHistory,
@@ -319,6 +451,7 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
       recommendation,
       nextEarningsDate,
       streak,
+      highlights,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

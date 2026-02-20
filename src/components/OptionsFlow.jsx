@@ -155,8 +155,8 @@ export default function OptionsFlow({ active, onSelectStock }) {
                             <span className={`sentiment-badge sm ${u.sentiment}`}>{u.type}</span>
                             <span>${u.strike} strike</span>
                             <span>{formatDate(u.expiration)} exp</span>
-                            <span>Vol: {u.volume.toLocaleString()}</span>
-                            <span>OI: {u.openInterest.toLocaleString()}</span>
+                            <span>Vol: {u.volume?.toLocaleString() ?? '--'}</span>
+                            <span>OI: {u.openInterest?.toLocaleString() ?? '--'}</span>
                             <span className="value-highlight">{formatPremium(u.totalPremium)}</span>
                           </div>
                         ))}

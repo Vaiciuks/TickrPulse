@@ -255,6 +255,24 @@ export default function EarningsLookup({ active, onSelectStock }) {
             </div>
           </div>
 
+          {/* Earnings Highlights */}
+          {data.highlights && data.highlights.length > 0 && (
+            <div className="el-section el-highlights-section">
+              <h3 className="el-section-title">Highlights</h3>
+              <div className="el-highlights">
+                {data.highlights.map((h, i) => (
+                  <div key={i} className="el-highlight-item">
+                    <span className="el-highlight-dot" />
+                    <div className="el-highlight-content">
+                      <span className="el-highlight-title">{h.title}:</span>
+                      {' '}{h.detail}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* EPS History Chart */}
           {epsChart.length > 0 && (
             <div className="el-section">

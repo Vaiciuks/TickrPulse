@@ -46,7 +46,7 @@ const FUTURES_SYMBOLS = [
   'ETH=F',  // Ethereum CME Futures
 ];
 
-router.get('/', withCache(15), async (req, res, next) => {
+router.get('/', withCache(5), async (req, res, next) => {
   try {
     const results = await Promise.allSettled(
       FUTURES_SYMBOLS.map(sym => fetchQuote(sym))

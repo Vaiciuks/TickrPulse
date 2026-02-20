@@ -30,9 +30,9 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
     });
 
     const series = chart.addAreaSeries({
-      lineColor: isPositive ? '#00c853' : '#ff1744',
-      topColor: isPositive ? 'rgba(0, 200, 83, 0.35)' : 'rgba(255, 23, 68, 0.35)',
-      bottomColor: isPositive ? 'rgba(0, 200, 83, 0.02)' : 'rgba(255, 23, 68, 0.02)',
+      lineColor: isPositive ? '#00d66b' : '#ff2952',
+      topColor: isPositive ? 'rgba(0, 214, 107, 0.35)' : 'rgba(255, 41, 82, 0.35)',
+      bottomColor: isPositive ? 'rgba(0, 214, 107, 0.02)' : 'rgba(255, 41, 82, 0.02)',
       lineWidth: 2,
       crosshairMarkerVisible: false,
     });
@@ -53,7 +53,7 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
     volSeries.setData(data.map(d => ({
       time: d.time,
       value: d.volume || 0,
-      color: d.close >= d.open ? 'rgba(0,200,83,0.18)' : 'rgba(255,23,68,0.18)',
+      color: d.close >= d.open ? 'rgba(0,214,107,0.18)' : 'rgba(255,41,82,0.18)',
     })));
 
     chart.timeScale().fitContent();

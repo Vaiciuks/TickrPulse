@@ -405,16 +405,16 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
 
     let mainSeries;
     if (chartType === 'line') {
-      mainSeries = chart.addLineSeries({ color: '#00c853', lineWidth: 2, priceLineVisible: true, lastValueVisible: true });
+      mainSeries = chart.addLineSeries({ color: '#00d66b', lineWidth: 2, priceLineVisible: true, lastValueVisible: true });
     } else if (chartType === 'area') {
       mainSeries = chart.addAreaSeries({ lineColor: '#00e5ff', topColor: 'rgba(0,229,255,0.25)', bottomColor: 'rgba(0,229,255,0.02)', lineWidth: 2, priceLineVisible: true, lastValueVisible: true, crosshairMarkerRadius: 5, crosshairMarkerBorderColor: '#00e5ff', crosshairMarkerBackgroundColor: 'rgba(0,229,255,0.3)' });
     } else if (chartType === 'bar') {
-      mainSeries = chart.addBarSeries({ upColor: '#00c853', downColor: '#ff1744', thinBars: false });
+      mainSeries = chart.addBarSeries({ upColor: '#00d66b', downColor: '#ff2952', thinBars: false });
     } else {
       mainSeries = chart.addCandlestickSeries({
-        upColor: '#00c853', downColor: '#ff1744',
-        borderUpColor: '#00c853', borderDownColor: '#ff1744',
-        wickUpColor: '#00c853', wickDownColor: '#ff1744',
+        upColor: '#00d66b', downColor: '#ff2952',
+        borderUpColor: '#00d66b', borderDownColor: '#ff2952',
+        wickUpColor: '#00d66b', wickDownColor: '#ff2952',
       });
     }
     candleSeriesRef.current = mainSeries;
