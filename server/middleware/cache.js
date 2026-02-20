@@ -11,7 +11,10 @@ export function withCache(ttlSeconds) {
 
     const originalJson = res.json.bind(res);
     res.json = (data) => {
-      cache.set(key, { data, timestamp: Date.now() });
+      // Only cache successful responses (not error objects)
+      if (res.statusCode < 400 && !data?.error) {
+        cache.set(key, { data, timestamp: Date.now() });
+      }
       return originalJson(data);
     };
 
