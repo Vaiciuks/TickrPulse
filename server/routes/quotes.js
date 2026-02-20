@@ -6,7 +6,7 @@ const router = Router();
 
 // Batch quote endpoint — fetches up to 150 symbols in a single Yahoo API call
 // Used by the frontend to replace 30+ individual /api/quote/:symbol calls
-router.get('/', withCache(2), async (req, res, next) => {
+router.get('/', withCache(5), async (req, res, next) => {
   try {
     const symbolsParam = req.query.symbols;
     if (!symbolsParam) {

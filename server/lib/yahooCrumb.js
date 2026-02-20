@@ -8,6 +8,16 @@ let cachedCookie = null;
 let crumbExpiry = 0;
 const CRUMB_TTL = 30 * 60 * 1000; // 30 minutes
 
+// Retry with exponential backoff for 429 rate limiting
+async function withRetry(fn, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fn();
+    if (res.status !== 429 || attempt === maxRetries) return res;
+    const delay = Math.min(1000 * Math.pow(2, attempt), 8000); // 1s, 2s, 4s, 8s
+    await new Promise(r => setTimeout(r, delay));
+  }
+}
+
 export async function getYahooCrumb() {
   if (cachedCrumb && cachedCookie && Date.now() < crumbExpiry) {
     return { crumb: cachedCrumb, cookie: cachedCookie };
@@ -70,27 +80,27 @@ export async function yahooFetchRaw(url, options = {}) {
   const separator = url.includes('?') ? '&' : '?';
   const fullUrl = `${url}${separator}crumb=${encodeURIComponent(crumb)}`;
 
-  const res = await fetch(fullUrl, {
+  const res = await withRetry(() => fetch(fullUrl, {
     ...options,
     headers: {
       'User-Agent': USER_AGENT,
       'Cookie': cookie,
       ...(options.headers || {}),
     },
-  });
+  }));
 
   if ((res.status === 401 || res.status === 403) && crumbExpiry > 0) {
     crumbExpiry = 0;
     const fresh = await getYahooCrumb();
     const retryUrl = `${url}${separator}crumb=${encodeURIComponent(fresh.crumb)}`;
-    return fetch(retryUrl, {
+    return withRetry(() => fetch(retryUrl, {
       ...options,
       headers: {
         'User-Agent': USER_AGENT,
         'Cookie': fresh.cookie,
         ...(options.headers || {}),
       },
-    });
+    }));
   }
 
   return res;
@@ -102,13 +112,13 @@ export async function yahooAuthFetch(url) {
   const separator = url.includes('?') ? '&' : '?';
   const fullUrl = `${url}${separator}crumb=${encodeURIComponent(crumb)}`;
 
-  const res = await fetch(fullUrl, {
+  const res = await withRetry(() => fetch(fullUrl, {
     headers: {
       'User-Agent': USER_AGENT,
       'Cookie': cookie,
     },
     signal: AbortSignal.timeout(12000),
-  });
+  }));
 
   if (!res.ok) {
     // If 401/403, invalidate cache and retry once
@@ -116,13 +126,13 @@ export async function yahooAuthFetch(url) {
       crumbExpiry = 0;
       const fresh = await getYahooCrumb();
       const retryUrl = `${url}${separator}crumb=${encodeURIComponent(fresh.crumb)}`;
-      const retryRes = await fetch(retryUrl, {
+      const retryRes = await withRetry(() => fetch(retryUrl, {
         headers: {
           'User-Agent': USER_AGENT,
           'Cookie': fresh.cookie,
         },
         signal: AbortSignal.timeout(12000),
-      });
+      }));
       if (!retryRes.ok) throw new Error(`Yahoo API returned ${retryRes.status}`);
       return retryRes.json();
     }

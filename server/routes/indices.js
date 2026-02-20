@@ -31,7 +31,7 @@ const INDICES_SYMBOLS = [
   '^AXJO',      // ASX 200 (Australia)
 ];
 
-router.get('/', withCache(15), async (req, res, next) => {
+router.get('/', withCache(30), async (req, res, next) => {
   try {
     const quotesMap = await fetchBatchQuotes(INDICES_SYMBOLS);
 

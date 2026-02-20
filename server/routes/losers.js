@@ -18,7 +18,7 @@ async function fetchDayLosers() {
   return data.finance?.result?.[0]?.quotes || [];
 }
 
-router.get('/', withCache(15), async (req, res, next) => {
+router.get('/', withCache(30), async (req, res, next) => {
   try {
     const quotes = await fetchDayLosers();
 
