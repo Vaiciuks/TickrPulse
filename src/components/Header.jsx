@@ -224,7 +224,6 @@ export default function Header({ lastUpdated, count, error, onSearch, tabs, acti
             </button>
           ))}
         </div>
-        <DigestBanner />
       </div>
 
       {/* Mobile Row 1: utility bar */}
@@ -368,6 +367,7 @@ export default function Header({ lastUpdated, count, error, onSearch, tabs, acti
 
       {/* Desktop: right section */}
       <div className="header-right">
+        <DigestBanner />
         {count > 0 && <span className="header-count">{count} stocks</span>}
         <span className={`status-dot ${error ? 'status-error' : 'status-live'}`} />
         <span>

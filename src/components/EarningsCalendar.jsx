@@ -193,10 +193,9 @@ export default function EarningsCalendar({ active, onSelectStock }) {
   };
 
   return (
-    <main className="earnings-main">
+    <div className="earnings-calendar-inner">
       <div className="earnings-header">
         <div className="earnings-header-left">
-          <h2 className="earnings-title">Earnings Calendar</h2>
           {totalForWeek > 0 && (
             <span className="earnings-total">{totalForWeek} reporting</span>
           )}
@@ -283,6 +282,6 @@ export default function EarningsCalendar({ active, onSelectStock }) {
           onStockClick={(stock) => { setExpandedDay(null); handleCardClick(stock); }}
         />
       )}
-    </main>
+    </div>
   );
 }

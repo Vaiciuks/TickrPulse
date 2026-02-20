@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { authFetch } from '../lib/authFetch.js';
 import { useScrollLock } from '../hooks/useScrollLock.js';
@@ -74,7 +75,7 @@ export default function DigestBanner() {
         <span className="digest-banner-time">{timeAgo(digest.timestamp)}</span>
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="digest-overlay">
           <div className="digest-modal" ref={modalRef}>
             <div className="digest-modal-header">
@@ -93,7 +94,8 @@ export default function DigestBanner() {
               </p>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

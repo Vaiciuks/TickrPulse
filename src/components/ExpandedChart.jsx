@@ -94,19 +94,16 @@ function getChartThemeColors() {
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
   return {
     bg: isDark ? '#0a0a0f' : '#ffffff',
-    grid: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)',
-    text: isDark ? '#666' : '#999',
-    crosshair: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
-    crosshairLabel: isDark ? '#2a2a3e' : '#e0e0e8',
-    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+    grid: isDark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.04)',
+    text: isDark ? '#555' : '#aaa',
+    crosshair: isDark ? 'rgba(0, 229, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
+    crosshairLabel: isDark ? '#1a1a28' : '#e0e0e8',
+    border: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     brandedBg: isDark ? '#12121a' : '#f0f0f5',
     brandedText: isDark ? '#e0e0e0' : '#1a1a2e',
     brandedDim: isDark ? '#888' : '#666',
   };
 }
-
-// Keep backward compat reference
-const CHART_BG = '#0a0a0f';
 
 // Stats panel helpers
 function fmtStatPrice(v) { return v != null ? v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'; }
@@ -253,6 +250,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
   const syncingRef = useRef(false);
 
   const [crosshairData, setCrosshairData] = useState(null);
+  const [crosshairPoint, setCrosshairPoint] = useState(null);
   const [minuteIdx, setMinuteIdx] = useState(() => {
     if (!session) return 0;
     const saved = loadTimeframe(stock.symbol);
@@ -307,6 +305,30 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
       .catch(() => { if (!cancelled) setStatsLoading(false); });
     return () => { cancelled = true; };
   }, [showStats, stock.symbol, stats]);
+
+  // Smart Money panel
+  const [showSmartMoney, setShowSmartMoney] = useState(false);
+  const [smartMoneyData, setSmartMoneyData] = useState(null);
+  const [smartMoneyLoading, setSmartMoneyLoading] = useState(false);
+  const [smartMoneySections, setSmartMoneySections] = useState({ insider: true, options: true, short: true });
+
+  useEffect(() => {
+    if (!showSmartMoney || smartMoneyData) return;
+    let cancelled = false;
+    setSmartMoneyLoading(true);
+    const sym = encodeURIComponent(stock.symbol);
+    Promise.all([
+      fetch(`/api/insider-trading/${sym}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`/api/options-flow/${sym}`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`/api/short-interest/${sym}`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([insider, options, short]) => {
+      if (!cancelled) {
+        setSmartMoneyData({ insider, options, short });
+        setSmartMoneyLoading(false);
+      }
+    }).catch(() => { if (!cancelled) setSmartMoneyLoading(false); });
+    return () => { cancelled = true; };
+  }, [showSmartMoney, stock.symbol, smartMoneyData]);
 
   // Drawing tools state
   const [drawMode, setDrawMode] = useState('none');
@@ -385,7 +407,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     if (chartType === 'line') {
       mainSeries = chart.addLineSeries({ color: '#00c853', lineWidth: 2, priceLineVisible: true, lastValueVisible: true });
     } else if (chartType === 'area') {
-      mainSeries = chart.addAreaSeries({ lineColor: '#00c853', topColor: 'rgba(0,200,83,0.28)', bottomColor: 'rgba(0,200,83,0.02)', lineWidth: 2, priceLineVisible: true, lastValueVisible: true });
+      mainSeries = chart.addAreaSeries({ lineColor: '#00e5ff', topColor: 'rgba(0,229,255,0.25)', bottomColor: 'rgba(0,229,255,0.02)', lineWidth: 2, priceLineVisible: true, lastValueVisible: true, crosshairMarkerRadius: 5, crosshairMarkerBorderColor: '#00e5ff', crosshairMarkerBackgroundColor: 'rgba(0,229,255,0.3)' });
     } else if (chartType === 'bar') {
       mainSeries = chart.addBarSeries({ upColor: '#00c853', downColor: '#ff1744', thinBars: false });
     } else {
@@ -425,7 +447,10 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     }
 
     chart.subscribeCrosshairMove((param) => {
-      if (!param || !param.time || !param.seriesData) { setCrosshairData(null); return; }
+      if (!param || !param.time || !param.seriesData) { setCrosshairData(null); setCrosshairPoint(null); return; }
+      if (param.point) {
+        setCrosshairPoint({ x: param.point.x, y: param.point.y });
+      }
       const d = param.seriesData.get(candleSeriesRef.current);
       const vol = param.seriesData.get(volumeSeriesRef.current);
       if (d) {
@@ -540,8 +565,8 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     }
 
     // Overbought/oversold markers
-    const ob = chart.addLineSeries({ color: 'rgba(255,255,255,0.15)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
-    const os = chart.addLineSeries({ color: 'rgba(255,255,255,0.15)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+    const ob = chart.addLineSeries({ color: 'rgba(255,255,255,0.08)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
+    const os = chart.addLineSeries({ color: 'rgba(255,255,255,0.08)', lineWidth: 1, lineStyle: 2, priceLineVisible: false, lastValueVisible: false });
     // We'll set data for ob/os markers when data arrives
     rsiLine._obLine = ob;
     rsiLine._osLine = os;
@@ -633,7 +658,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     if (volumeSeriesRef.current) {
       volumeSeriesRef.current.setData(chartData.map(d => ({
         time: d.time, value: d.volume || 0,
-        color: d.close >= d.open ? 'rgba(0,200,83,0.25)' : 'rgba(255,23,68,0.25)',
+        color: d.close >= d.open ? 'rgba(0,200,83,0.15)' : 'rgba(255,23,68,0.15)',
       })));
     }
 
@@ -1217,7 +1242,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
           {hasNews && (
             <button
               className={`expanded-news-btn${showNews ? ' active' : ''}`}
-              onClick={() => { setShowNews(prev => !prev); setShowStats(false); }}
+              onClick={() => { setShowNews(prev => !prev); setShowStats(false); setShowSmartMoney(false); }}
               aria-label="Toggle news panel"
               title="News"
             >
@@ -1230,13 +1255,25 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
           {!compact && (
             <button
               className={`expanded-stats-btn${showStats ? ' active' : ''}`}
-              onClick={() => { setShowStats(prev => !prev); setShowNews(false); }}
+              onClick={() => { setShowStats(prev => !prev); setShowNews(false); setShowSmartMoney(false); }}
               aria-label="Toggle key statistics"
               title="Key Statistics"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                 <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+              </svg>
+            </button>
+          )}
+          {!compact && (
+            <button
+              className={`expanded-smartmoney-btn${showSmartMoney ? ' active' : ''}`}
+              onClick={() => { setShowSmartMoney(prev => !prev); setShowStats(false); setShowNews(false); }}
+              aria-label="Toggle smart money data"
+              title="Smart Money"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
               </svg>
             </button>
           )}
@@ -1337,7 +1374,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
           </div>
         </div>
         <div className="expanded-header-center">
-          <span className="expanded-header-price">{formatPrice(animatedPrice)}</span>
+          <span className={`expanded-header-price ${isPositive ? 'glow-up' : 'glow-down'}`}>{formatPrice(animatedPrice)}</span>
           <span className={`expanded-header-change ${isPositive ? 'change-up' : 'change-down'}`}>
             {isPositive ? '+' : ''}{animatedPercent.toFixed(2)}%
           </span>
@@ -1359,24 +1396,16 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
             <span className="expanded-header-volume">Vol {formatVolume(stock.volume)}</span>
           )}
         </div>
-        <button className="expanded-close" onClick={onClose}>&times;</button>
+        <button className="expanded-close" onClick={onClose} aria-label="Close">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg>
+        </button>
       </div>
 
       <div className="expanded-chart-area">
         <div className="chart-toolbar">
           {!compact && (
             <div className="chart-tooltip">
-              {crosshairData ? (
-                <>
-                  <span>O <b className={crosshairData.isUp ? 'val-up' : 'val-down'}>{crosshairData.open.toFixed(2)}</b></span>
-                  <span>H <b className={crosshairData.isUp ? 'val-up' : 'val-down'}>{crosshairData.high.toFixed(2)}</b></span>
-                  <span>L <b className={crosshairData.isUp ? 'val-up' : 'val-down'}>{crosshairData.low.toFixed(2)}</b></span>
-                  <span>C <b className={crosshairData.isUp ? 'val-up' : 'val-down'}>{crosshairData.close.toFixed(2)}</b></span>
-                  <span>Vol <b>{formatVolume(crosshairData.volume)}</b></span>
-                </>
-              ) : (
-                <span className="tooltip-hint">Hover over chart for details</span>
-              )}
+              <span className="tooltip-hint">Hover over chart for OHLCV</span>
             </div>
           )}
           <div className="timeframe-groups">
@@ -1589,6 +1618,37 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
         <div className={`expanded-chart-container${drawMode !== 'none' ? ' drawing-active' : ''}${snipMode ? ' snip-active' : ''}`} style={{ flex: mainFlex }} ref={mainContainerRef}>
           {loading && <div className="chart-loading">Loading chart data...</div>}
           {!loading && (!data || data.length === 0) && <div className="chart-loading">No chart data available</div>}
+          {!compact && crosshairData && crosshairPoint && (
+            <div
+              className="floating-tooltip"
+              style={{
+                left: Math.min(crosshairPoint.x + 16, (mainContainerRef.current?.clientWidth || 600) - 200),
+                top: Math.max(crosshairPoint.y - 80, 8),
+              }}
+            >
+              <div className="floating-tooltip-row">
+                <span className="floating-tooltip-label">O</span>
+                <span className={`floating-tooltip-value ${crosshairData.isUp ? 'val-up' : 'val-down'}`}>{crosshairData.open.toFixed(2)}</span>
+              </div>
+              <div className="floating-tooltip-row">
+                <span className="floating-tooltip-label">H</span>
+                <span className={`floating-tooltip-value ${crosshairData.isUp ? 'val-up' : 'val-down'}`}>{crosshairData.high.toFixed(2)}</span>
+              </div>
+              <div className="floating-tooltip-row">
+                <span className="floating-tooltip-label">L</span>
+                <span className={`floating-tooltip-value ${crosshairData.isUp ? 'val-up' : 'val-down'}`}>{crosshairData.low.toFixed(2)}</span>
+              </div>
+              <div className="floating-tooltip-row">
+                <span className="floating-tooltip-label">C</span>
+                <span className={`floating-tooltip-value ${crosshairData.isUp ? 'val-up' : 'val-down'}`}>{crosshairData.close.toFixed(2)}</span>
+              </div>
+              <div className="floating-tooltip-divider" />
+              <div className="floating-tooltip-row">
+                <span className="floating-tooltip-label">Vol</span>
+                <span className="floating-tooltip-value">{formatVolume(crosshairData.volume)}</span>
+              </div>
+            </div>
+          )}
           {drawMode !== 'none' && (
             <div className="draw-mode-badge">
               {drawMode === 'hline' ? 'Click to place line' :
@@ -1651,6 +1711,134 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
                 <span className="expanded-news-meta">{article.publisher} &middot; {timeAgo(article.publishedAt)}</span>
               </a>
             ))}
+          </div>
+        </>
+      )}
+      {showSmartMoney && (
+        <>
+          <div className="panel-backdrop" onClick={() => setShowSmartMoney(false)} />
+          <div className="expanded-smartmoney-panel">
+            <div className="expanded-smartmoney-header">
+              <span>Smart Money &mdash; {stock.symbol}</span>
+              <button className="expanded-smartmoney-close" onClick={() => setShowSmartMoney(false)}>&times;</button>
+            </div>
+            {smartMoneyLoading ? (
+              <div className="expanded-stats-loading">Loading smart money data...</div>
+            ) : smartMoneyData ? (
+              <div className="smartmoney-panel-content">
+                {/* Insider Trading section */}
+                <div className="smartmoney-section">
+                  <div className="smartmoney-section-header" onClick={() => setSmartMoneySections(s => ({ ...s, insider: !s.insider }))}>
+                    <span className="smartmoney-section-label">
+                      <span className={`smartmoney-section-chevron${smartMoneySections.insider ? ' open' : ''}`}>&#9654;</span>
+                      Insider Trading
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{smartMoneyData.insider?.count ?? 0} trades</span>
+                  </div>
+                  {smartMoneySections.insider && (
+                    <div className="smartmoney-section-body">
+                      {smartMoneyData.insider?.trades?.length > 0 ? smartMoneyData.insider.trades.slice(0, 5).map((t, i) => (
+                        <div key={i} className="smartmoney-panel-trade">
+                          <span className={`sentiment-badge sm ${t.isBuy ? 'bullish' : 'bearish'}`}>{t.isBuy ? 'BUY' : 'SELL'}</span>
+                          <span className="smartmoney-panel-trade-name">{t.insiderName}</span>
+                          <span className="smartmoney-panel-trade-value">${t.value >= 1e6 ? (t.value/1e6).toFixed(1)+'M' : t.value >= 1e3 ? (t.value/1e3).toFixed(0)+'K' : t.value}</span>
+                          <span className="smartmoney-panel-trade-date">{t.tradeDate}</span>
+                        </div>
+                      )) : <div className="smartmoney-panel-empty">No insider trades found</div>}
+                    </div>
+                  )}
+                </div>
+
+                {/* Options Flow section */}
+                <div className="smartmoney-section">
+                  <div className="smartmoney-section-header" onClick={() => setSmartMoneySections(s => ({ ...s, options: !s.options }))}>
+                    <span className="smartmoney-section-label">
+                      <span className={`smartmoney-section-chevron${smartMoneySections.options ? ' open' : ''}`}>&#9654;</span>
+                      Options Flow
+                    </span>
+                    {smartMoneyData.options?.summary && (
+                      <span className={`sentiment-badge sm ${smartMoneyData.options.summary.sentiment}`}>
+                        {smartMoneyData.options.summary.sentiment}
+                      </span>
+                    )}
+                  </div>
+                  {smartMoneySections.options && (
+                    <div className="smartmoney-section-body">
+                      {smartMoneyData.options?.summary ? (
+                        <>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Put/Call Ratio</span>
+                            <span className="smartmoney-panel-row-value">{smartMoneyData.options.summary.putCallRatio ?? '—'}</span>
+                          </div>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Net Premium</span>
+                            <span className="smartmoney-panel-row-value" style={{ color: smartMoneyData.options.summary.netPremium >= 0 ? 'var(--green-primary)' : 'var(--red-primary)' }}>
+                              ${Math.abs(smartMoneyData.options.summary.netPremium) >= 1e6 ? (smartMoneyData.options.summary.netPremium/1e6).toFixed(1)+'M' : Math.abs(smartMoneyData.options.summary.netPremium) >= 1e3 ? (smartMoneyData.options.summary.netPremium/1e3).toFixed(0)+'K' : smartMoneyData.options.summary.netPremium}
+                            </span>
+                          </div>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Call Volume</span>
+                            <span className="smartmoney-panel-row-value">{smartMoneyData.options.summary.totalCallVolume?.toLocaleString()}</span>
+                          </div>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Put Volume</span>
+                            <span className="smartmoney-panel-row-value">{smartMoneyData.options.summary.totalPutVolume?.toLocaleString()}</span>
+                          </div>
+                          {smartMoneyData.options.unusual?.length > 0 && (
+                            <>
+                              <div style={{ fontSize: 11, fontWeight: 600, color: '#ffc107', marginTop: 8, marginBottom: 4 }}>Top Unusual</div>
+                              {smartMoneyData.options.unusual.slice(0, 3).map((u, i) => (
+                                <div key={i} className="smartmoney-panel-trade">
+                                  <span className={`sentiment-badge sm ${u.sentiment}`}>{u.type}</span>
+                                  <span className="smartmoney-panel-trade-name">${u.strike} strike</span>
+                                  <span className="smartmoney-panel-trade-value">Vol: {u.volume?.toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      ) : <div className="smartmoney-panel-empty">No options data</div>}
+                    </div>
+                  )}
+                </div>
+
+                {/* Short Interest section */}
+                <div className="smartmoney-section">
+                  <div className="smartmoney-section-header" onClick={() => setSmartMoneySections(s => ({ ...s, short: !s.short }))}>
+                    <span className="smartmoney-section-label">
+                      <span className={`smartmoney-section-chevron${smartMoneySections.short ? ' open' : ''}`}>&#9654;</span>
+                      Short Interest
+                    </span>
+                  </div>
+                  {smartMoneySections.short && (
+                    <div className="smartmoney-section-body">
+                      {smartMoneyData.short ? (
+                        <>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Short % Float</span>
+                            <span className="smartmoney-panel-row-value value-highlight">
+                              {smartMoneyData.short.shortPercentOfFloat != null ? (smartMoneyData.short.shortPercentOfFloat * 100).toFixed(1) + '%' : '—'}
+                            </span>
+                          </div>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Days to Cover</span>
+                            <span className="smartmoney-panel-row-value">{smartMoneyData.short.shortRatio?.toFixed(1) ?? '—'}</span>
+                          </div>
+                          <div className="smartmoney-panel-row">
+                            <span className="smartmoney-panel-row-label">Shares Short</span>
+                            <span className="smartmoney-panel-row-value">
+                              {smartMoneyData.short.sharesShort ? (smartMoneyData.short.sharesShort >= 1e6 ? (smartMoneyData.short.sharesShort/1e6).toFixed(1)+'M' : (smartMoneyData.short.sharesShort/1e3).toFixed(0)+'K') : '—'}
+                            </span>
+                          </div>
+                        </>
+                      ) : <div className="smartmoney-panel-empty">No short interest data</div>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="expanded-stats-loading">No data available</div>
+            )}
           </div>
         </>
       )}

@@ -6,8 +6,10 @@ function detectSession() {
   const now = new Date();
   const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const mins = et.getHours() * 60 + et.getMinutes();
-  if (mins >= 240 && mins < 570) return 'pre'; // 4:00 AM – 9:30 AM ET
-  return 'post';
+  if (mins >= 240 && mins < 570) return 'pre';    // 4:00 AM – 9:30 AM ET
+  if (mins >= 570 && mins < 960) return 'market';  // 9:30 AM – 4:00 PM ET
+  if (mins >= 960 && mins < 1200) return 'post';   // 4:00 PM – 8:00 PM ET
+  return 'closed';                                   // 8:00 PM – 4:00 AM ET
 }
 
 function formatVolume(v) {
@@ -96,8 +98,16 @@ function SkeletonLoader() {
 }
 
 export default function ExtendedHoursMovers({ active, onSelectStock }) {
-  const [session, setSession] = useState(detectSession);
+  const detectedSession = detectSession();
+  // During market/closed, default to the most relevant ext session for fetching
+  const apiSession = detectedSession === 'pre' ? 'pre'
+    : detectedSession === 'market' ? 'pre'   // show most recent pre-market data
+    : 'post';                                  // post or closed
+  const [session, setSession] = useState(apiSession);
   const { gainers, losers, loading, lastUpdated } = useMovers(active, session);
+
+  const isMarketOpen = detectedSession === 'market';
+  const isClosed = detectedSession === 'closed';
 
   const handleClick = (stock) => {
     if (onSelectStock) {
@@ -106,6 +116,9 @@ export default function ExtendedHoursMovers({ active, onSelectStock }) {
   };
 
   const sessionLabel = session === 'pre' ? 'Pre-Market' : 'After-Hours';
+  const statusLabel = isMarketOpen ? 'Market Open'
+    : isClosed ? 'Market Closed'
+    : `${sessionLabel} active`;
 
   return (
     <main className="movers-main">
@@ -113,8 +126,8 @@ export default function ExtendedHoursMovers({ active, onSelectStock }) {
         <div className="movers-header-left">
           <h2 className="movers-title">Extended Hours Movers</h2>
           <span className="movers-status">
-            <span className="movers-status-dot" />
-            {sessionLabel}
+            <span className={`movers-status-dot${isMarketOpen ? ' movers-status-dot--market' : isClosed ? ' movers-status-dot--closed' : ''}`} />
+            {statusLabel}
           </span>
         </div>
         <div className="movers-header-right">

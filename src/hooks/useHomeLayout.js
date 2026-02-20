@@ -5,7 +5,7 @@ const STORAGE_KEY = 'tickrpulse-home-layout';
 const DEFAULT_ORDER = [
   'pulse', 'runners', 'news', 'breadth', 'heatmap',
   'feargreed', 'losers', 'movers', 'trending', 'futures', 'crypto',
-  'earnings', 'economy', 'watchlist',
+  'earnings', 'economy', 'favorites',
 ];
 const DEFAULT_LAYOUT = { order: DEFAULT_ORDER, hidden: [] };
 
@@ -13,11 +13,15 @@ function loadLayout() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved && Array.isArray(saved.order)) {
-      const known = new Set(saved.order);
+      // Migrate 'watchlist' → 'favorites' for existing users
+      const order = saved.order.map(k => k === 'watchlist' ? 'favorites' : k);
+      const hidden = (Array.isArray(saved.hidden) ? saved.hidden : [])
+        .map(k => k === 'watchlist' ? 'favorites' : k);
+      const known = new Set(order);
       const missing = DEFAULT_ORDER.filter(k => !known.has(k));
       return {
-        order: [...saved.order, ...missing],
-        hidden: Array.isArray(saved.hidden) ? saved.hidden : [],
+        order: [...order, ...missing],
+        hidden,
       };
     }
   } catch {}

@@ -264,6 +264,36 @@ async function fetchRSS(url, fallbackPublisher) {
   }
 }
 
+// Scrape og:image from an article page (lightweight — only reads first 50KB)
+async function scrapeOgImage(url) {
+  try {
+    const response = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(3000),
+      redirect: 'follow',
+    });
+    if (!response.ok) return null;
+    // Read only the head portion — og:image is always in <head>
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let html = '';
+    while (html.length < 50000) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      html += decoder.decode(value, { stream: true });
+      // Stop once we've passed </head>
+      if (html.includes('</head>')) break;
+    }
+    reader.cancel();
+
+    const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    return ogMatch?.[1] || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchMarketNews() {
   // Curated financial news RSS feeds — editorially selected market headlines
   const RSS_FEEDS = [
@@ -301,7 +331,19 @@ export async function fetchMarketNews() {
   // Filter to only today's articles (last 24 hours)
   const oneDayAgo = Math.floor(Date.now() / 1000) - 86400;
   const recent = articles.filter(a => a.publishedAt > oneDayAgo);
-  return (recent.length >= 5 ? recent : articles).slice(0, 30);
+  const final = (recent.length >= 5 ? recent : articles).slice(0, 30);
+
+  // Scrape og:image thumbnails for top articles (parallel, fast timeout)
+  const ogResults = await Promise.allSettled(
+    final.slice(0, 15).map(a => a.link ? scrapeOgImage(a.link) : Promise.resolve(null))
+  );
+  for (let i = 0; i < ogResults.length; i++) {
+    if (ogResults[i].status === 'fulfilled' && ogResults[i].value) {
+      final[i].thumbnail = ogResults[i].value;
+    }
+  }
+
+  return final;
 }
 
 // Coinbase public API for crypto 1m OHLC (Yahoo doesn't provide real OHLC at 1m for crypto)

@@ -20,6 +20,14 @@ import moversRouter from './routes/movers.js';
 import screenerRouter from './routes/screener.js';
 import contactRouter from './routes/contact.js';
 import userRouter from './routes/user.js';
+import insiderTradingRouter from './routes/insiderTrading.js';
+import optionsFlowRouter from './routes/optionsFlow.js';
+import shortInterestRouter from './routes/shortInterest.js';
+import earningsLookupRouter from './routes/earningsLookup.js';
+import congressTradingRouter from './routes/congressTrading.js';
+import govContractsRouter from './routes/govContracts.js';
+import lobbyingRouter from './routes/lobbying.js';
+import darkPoolRouter from './routes/darkPool.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -47,6 +55,14 @@ app.use('/api/economic-calendar', economicCalendarRouter);
 app.use('/api/movers', moversRouter);
 app.use('/api/screener', screenerRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/insider-trading', insiderTradingRouter);
+app.use('/api/options-flow', optionsFlowRouter);
+app.use('/api/short-interest', shortInterestRouter);
+app.use('/api/earnings-lookup', earningsLookupRouter);
+app.use('/api/congress-trading', congressTradingRouter);
+app.use('/api/gov-contracts', govContractsRouter);
+app.use('/api/lobbying', lobbyingRouter);
+app.use('/api/dark-pool', darkPoolRouter);
 
 app.use(errorHandler);
 

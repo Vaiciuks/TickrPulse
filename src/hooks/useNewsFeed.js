@@ -23,13 +23,13 @@ function mergeAndDeduplicate(marketArticles, symbolNewsMap) {
     }
   }
 
-  // RSS articles second — no thumbnails
+  // RSS articles second — may have og:image thumbnails from server scraping
   for (const a of marketArticles) {
     if (!a.title || !a.title.trim()) continue;
     const key = normalizeTitle(a.title);
     if (!seen.has(key)) {
       seen.add(key);
-      all.push({ ...a, thumbnail: null });
+      all.push({ ...a, thumbnail: a.thumbnail || null });
     }
   }
 

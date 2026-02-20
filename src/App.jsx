@@ -18,12 +18,14 @@ import LoadingState from './components/LoadingState.jsx';
 import EmptyState from './components/EmptyState.jsx';
 import Heatmap from './components/Heatmap.jsx';
 import NewsFeed from './components/NewsFeed.jsx';
-import EarningsCalendar from './components/EarningsCalendar.jsx';
+import Earnings from './components/Earnings.jsx';
 import EconomicCalendar from './components/EconomicCalendar.jsx';
 import ExtendedHoursMovers from './components/ExtendedHoursMovers.jsx';
 import Home from './components/Home.jsx';
 import Screener from './components/Screener.jsx';
 import FuturesIndices from './components/FuturesIndices.jsx';
+import FavoritesGrid from './components/FavoritesGrid.jsx';
+import SmartMoney from './components/SmartMoney.jsx';
 import Footer from './components/Footer.jsx';
 
 const TABS = [
@@ -32,6 +34,7 @@ const TABS = [
   { key: 'losers', label: 'Top Losers', endpoint: '/api/losers' },
   { key: 'movers', label: 'Pre/After' },
   { key: 'trending', label: 'Trending', endpoint: '/api/trending' },
+  { key: 'favorites', label: 'Favorites' },
   { key: 'futures', label: 'Futures' },
   { key: 'crypto', label: 'Crypto', endpoint: '/api/crypto' },
   { key: 'screener', label: 'Screener' },
@@ -39,6 +42,7 @@ const TABS = [
   { key: 'news', label: 'News' },
   { key: 'earnings', label: 'Earnings' },
   { key: 'economy', label: 'Economy' },
+  { key: 'smartmoney', label: 'Smart Money' },
 ];
 
 const VALID_TABS = new Set(TABS.map(t => t.key));
@@ -105,7 +109,9 @@ export default function App() {
   const isMovers = activeTab === 'movers';
   const isScreener = activeTab === 'screener';
   const isFutures = activeTab === 'futures';
-  const isSpecialTab = isHome || isHeatmap || isNews || isEarnings || isEconomy || isMovers || isScreener || isFutures;
+  const isFavorites = activeTab === 'favorites';
+  const isSmartMoney = activeTab === 'smartmoney';
+  const isSpecialTab = isHome || isHeatmap || isNews || isEarnings || isEconomy || isMovers || isScreener || isFutures || isFavorites || isSmartMoney;
   const { stocks, loading, error, lastUpdated } = isSpecialTab
     ? { stocks: [], loading: false, error: null, lastUpdated: gainersData.lastUpdated }
     : tabData[activeTab];
@@ -143,8 +149,9 @@ export default function App() {
     const t = trendingData.stocks.map(s => s.symbol);
     const f = futuresData.stocks.map(s => s.symbol);
     const c = cryptoData.stocks.map(s => s.symbol);
-    return [...new Set([...g, ...l, ...t, ...f, ...c])];
-  }, [gainersData.stocks, losersData.stocks, trendingData.stocks, futuresData.stocks, cryptoData.stocks]);
+    const fav = favorites.map(s => s.symbol);
+    return [...new Set([...g, ...l, ...t, ...f, ...c, ...fav])];
+  }, [gainersData.stocks, losersData.stocks, trendingData.stocks, futuresData.stocks, cryptoData.stocks, favorites]);
   const { chartMap } = useBatchChartData(allSymbols);
   const { hasNews, getNews } = useNewsData(allSymbols);
 
@@ -395,7 +402,7 @@ export default function App() {
               )}
             </main>
           ) : isEarnings ? (
-            <EarningsCalendar active={isEarnings} onSelectStock={handleEarningsClick} />
+            <Earnings active={isEarnings} onSelectStock={handleEarningsClick} />
           ) : isEconomy ? (
             <EconomicCalendar active={isEconomy} />
           ) : isMovers ? (
@@ -407,12 +414,32 @@ export default function App() {
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
             />
+          ) : isFavorites ? (
+            <FavoritesGrid
+              favorites={favorites}
+              chartMap={chartMap}
+              onSelectStock={handleStockClick}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
+              hasNews={hasNews}
+              getNews={getNews}
+              hasStockNote={hasStockNote}
+              getStockNote={getStockNote}
+              setStockNote={setStockNote}
+              onReorderFavorites={reorderFavorites}
+              isInGrid={isInGrid}
+            />
           ) : isFutures ? (
             <FuturesIndices
               active={isFutures}
               onSelectStock={handleEarningsClick}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
+            />
+          ) : isSmartMoney ? (
+            <SmartMoney
+              active={isSmartMoney}
+              onSelectStock={handleEarningsClick}
             />
           ) : isNews ? (
             <NewsFeed active={isNews} />

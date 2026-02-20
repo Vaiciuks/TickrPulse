@@ -7,7 +7,9 @@ import StockLogo from './StockLogo.jsx';
 
 const LONG_PRESS_MS = 300;
 
-function TickerRow({ stock, onClick, starred, onToggleStar, hasNews, newsArticles, draggable, index, onDragStart }) {
+const BADGE_MODES = ['percent', 'price', 'dollar'];
+
+function TickerRow({ stock, onClick, starred, onToggleStar, hasNews, newsArticles, draggable, index, onDragStart, badgeMode, onCycleBadge }) {
   const isPositive = stock.changePercent >= 0;
   const prevPriceRef = useRef(stock.price);
   const [flash, setFlash] = useState(null);
@@ -44,7 +46,19 @@ function TickerRow({ stock, onClick, starred, onToggleStar, hasNews, newsArticle
 
   const animatedPrice = useAnimatedNumber(stock.price);
   const animatedPercent = useAnimatedNumber(stock.changePercent);
+  const animatedChange = useAnimatedNumber(stock.change || 0);
   const extPositive = stock.extChangePercent >= 0;
+
+  const badgeText = badgeMode === 'price'
+    ? formatPrice(animatedPrice)
+    : badgeMode === 'dollar'
+      ? `${animatedChange >= 0 ? '+' : ''}$${Math.abs(animatedChange).toFixed(2)}`
+      : `${isPositive ? '+' : ''}${animatedPercent.toFixed(2)}%`;
+
+  const handleBadgeClick = (e) => {
+    e.stopPropagation();
+    onCycleBadge();
+  };
 
   const cancelLongPress = () => {
     if (longPressRef.current) {
@@ -121,29 +135,35 @@ function TickerRow({ stock, onClick, starred, onToggleStar, hasNews, newsArticle
       >
         {starred ? '\u2605' : '\u2606'}
       </button>
-      <StockLogo symbol={stock.symbol} size={14} />
-      <span className="ticker-row-symbol">{stock.symbol}</span>
-      {hasNews && (
-        <button className="ticker-row-news-btn" onClick={handleNewsClick} aria-label={`News for ${stock.symbol}`} title="View news">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
-            <line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/><line x1="10" y1="14" x2="14" y2="14"/>
-          </svg>
-        </button>
-      )}
-      <span className={`ticker-row-price ${flash || ''}`}>{formatPrice(animatedPrice)}</span>
-      <span className={`ticker-row-change ${isPositive ? 'change-up' : 'change-down'}`}>
-        {isPositive ? '+' : ''}{animatedPercent.toFixed(2)}%
-      </span>
-      {stock.extPrice != null && (
-        <div className="ticker-row-ext">
-          <span className="ticker-row-ext-label">{stock.extMarketState === 'pre' ? 'Pre' : 'AH'}</span>
-          <span className="ticker-row-ext-price">{formatPrice(stock.extPrice)}</span>
-          <span className={`ticker-row-ext-change ${extPositive ? 'change-up' : 'change-down'}`}>
-            {extPositive ? '+' : ''}{stock.extChangePercent.toFixed(2)}%
-          </span>
+      <StockLogo symbol={stock.symbol} size={28} />
+      <div className="ticker-row-info">
+        <div className="ticker-row-info-top">
+          <span className="ticker-row-symbol">{stock.symbol}</span>
+          {hasNews && (
+            <button className="ticker-row-news-btn" onClick={handleNewsClick} aria-label={`News for ${stock.symbol}`} title="View news">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
+                <line x1="10" y1="6" x2="18" y2="6"/><line x1="10" y1="10" x2="18" y2="10"/><line x1="10" y1="14" x2="14" y2="14"/>
+              </svg>
+            </button>
+          )}
         </div>
-      )}
+        {stock.name && <span className="ticker-row-name">{stock.name}</span>}
+      </div>
+      <div className="ticker-row-right">
+        <button
+          className={`ticker-row-badge ${isPositive ? 'badge-up' : 'badge-down'} ${flash || ''}`}
+          onClick={handleBadgeClick}
+          title="Click to cycle: %Change / Price / $Change"
+        >
+          {badgeText}
+        </button>
+        {stock.extPrice != null && (
+          <span className={`ticker-row-ext-line ${extPositive ? 'change-up' : 'change-down'}`}>
+            {stock.extMarketState === 'pre' ? 'Pre' : 'AH'}: {extPositive ? '+' : ''}{stock.extChangePercent.toFixed(2)}%
+          </span>
+        )}
+      </div>
       {showNews && hasNews && (
         <NewsPopover articles={newsArticles} onClose={() => setShowNews(false)} />
       )}
@@ -157,6 +177,17 @@ export default function TickerSidebar({ favorites, recentStocks = [], onToggleFa
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [activeWatchTab, setActiveWatchTab] = useState('favorites');
+  const [badgeMode, setBadgeMode] = useState(() => {
+    try { return localStorage.getItem('tickrpulse-badge-mode') || 'percent'; } catch { return 'percent'; }
+  });
+
+  const cycleBadge = useCallback(() => {
+    setBadgeMode(prev => {
+      const next = BADGE_MODES[(BADGE_MODES.indexOf(prev) + 1) % BADGE_MODES.length];
+      try { localStorage.setItem('tickrpulse-badge-mode', next); } catch {}
+      return next;
+    });
+  }, []);
   const sidebarRef = useRef(null);
   const searchWrapperRef = useRef(null);
   const listRef = useRef(null);
@@ -475,6 +506,8 @@ export default function TickerSidebar({ favorites, recentStocks = [], onToggleFa
                     onClick={(e) => onSelectStock(stock, e)}
                     hasNews={hasNews(stock.symbol)}
                     newsArticles={getNews(stock.symbol)}
+                    badgeMode={badgeMode}
+                    onCycleBadge={cycleBadge}
                   />
                 ))}
                 {favorites.length === 0 && (
@@ -496,6 +529,8 @@ export default function TickerSidebar({ favorites, recentStocks = [], onToggleFa
                     onClick={(e) => onSelectStock(stock, e)}
                     hasNews={hasNews(stock.symbol)}
                     newsArticles={getNews(stock.symbol)}
+                    badgeMode={badgeMode}
+                    onCycleBadge={cycleBadge}
                   />
                 ))}
                 {filteredRecent.length === 0 && (

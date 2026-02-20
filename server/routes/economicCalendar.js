@@ -68,6 +68,7 @@ router.get('/', withCache(300), async (req, res, next) => {
       headers: {
         'User-Agent': USER_AGENT,
         'Origin': 'https://www.tradingview.com',
+        'Referer': 'https://www.tradingview.com/',
       },
       signal: AbortSignal.timeout(10000),
     });

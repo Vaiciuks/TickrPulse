@@ -31,9 +31,10 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
 
     const series = chart.addAreaSeries({
       lineColor: isPositive ? '#00c853' : '#ff1744',
-      topColor: isPositive ? 'rgba(0, 200, 83, 0.3)' : 'rgba(255, 23, 68, 0.3)',
-      bottomColor: isPositive ? 'rgba(0, 200, 83, 0.0)' : 'rgba(255, 23, 68, 0.0)',
+      topColor: isPositive ? 'rgba(0, 200, 83, 0.35)' : 'rgba(255, 23, 68, 0.35)',
+      bottomColor: isPositive ? 'rgba(0, 200, 83, 0.02)' : 'rgba(255, 23, 68, 0.02)',
       lineWidth: 2,
+      crosshairMarkerVisible: false,
     });
 
     const lineData = data.map(d => ({ time: d.time, value: d.close }));
@@ -80,7 +81,7 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
   }, [data]);
 
   return (
-    <div className="mini-chart" ref={containerRef}>
+    <div className={`mini-chart ${isPositive ? 'mini-chart--up' : 'mini-chart--down'}`} ref={containerRef}>
       {!data && <div className="mini-chart-loading" />}
     </div>
   );

@@ -130,13 +130,15 @@ export default function EconomicCalendar({ active }) {
     return events.find(e => new Date(e.date) > now && e.importance === 1);
   }, [events]);
 
-  // Count days until next high-impact event
+  // Count days until next high-impact event (calendar-day based)
   const daysUntilNext = useMemo(() => {
     if (!nextEvent) return null;
     const now = new Date();
     const eventDate = new Date(nextEvent.date);
-    const diff = Math.ceil((eventDate - now) / (1000 * 60 * 60 * 24));
-    if (diff === 0) return 'Today';
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+    const diff = Math.round((eventDay - nowDay) / (1000 * 60 * 60 * 24));
+    if (diff <= 0) return 'Today';
     if (diff === 1) return 'Tomorrow';
     return `In ${diff} days`;
   }, [nextEvent]);

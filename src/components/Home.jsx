@@ -23,7 +23,7 @@ const SECTIONS = [
   { key: 'crypto',    label: 'Crypto',         span: 1 },
   { key: 'earnings',  label: 'Earnings',       span: 1 },
   { key: 'economy',   label: 'Economy',        span: 1 },
-  { key: 'watchlist', label: 'Watchlist',      span: 1 },
+  { key: 'favorites', label: 'Favorites',      span: 1 },
 ];
 const SECTION_MAP = Object.fromEntries(SECTIONS.map(s => [s.key, s]));
 
@@ -49,8 +49,10 @@ function detectSession() {
   const now = new Date();
   const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const mins = et.getHours() * 60 + et.getMinutes();
-  if (mins >= 240 && mins < 570) return 'pre';
-  return 'post';
+  if (mins >= 240 && mins < 570) return 'pre';    // 4:00 AM – 9:30 AM ET
+  if (mins >= 570 && mins < 960) return 'market';  // 9:30 AM – 4:00 PM ET
+  if (mins >= 960 && mins < 1200) return 'post';   // 4:00 PM – 8:00 PM ET
+  return 'closed';                                   // 8:00 PM – 4:00 AM ET
 }
 
 // US stock market holidays (NYSE/NASDAQ)
@@ -459,7 +461,7 @@ function SecondaryIndex({ stock, label, sparkData }) {
       <div className={`hero-secondary-change ${isPos ? 'change-up' : 'change-down'}`}>
         {isPos ? '+' : ''}{animatedPercent.toFixed(2)}%
       </div>
-      <div className="hero-secondary-spark">
+      <div className={`hero-secondary-spark ${isPos ? 'spark-glow--up' : 'spark-glow--down'}`}>
         <Sparkline data={sparkData} width={80} height={24} isPositive={isPos} />
       </div>
     </div>
@@ -507,7 +509,7 @@ function MarketPulseCard({ futures, sparklines, onNavigate }) {
             <div className="hero-main-price"><HeroPrice stock={sp} /></div>
             <div className="hero-main-changes"><HeroChange stock={sp} /></div>
           </div>
-          <div className="hero-main-chart">
+          <div className={`hero-main-chart ${isUp ? 'spark-glow--up' : 'spark-glow--down'}`}>
             <Sparkline data={sparklines['ES=F']} width={200} height={48} isPositive={isUp} hero />
           </div>
         </div>
@@ -979,14 +981,20 @@ function FuturesRow({ stock, label }) {
 }
 
 function MoversPreview({ gainers, losers, session, onNavigate }) {
-  const label = session === 'pre' ? 'Pre-Market' : 'After-Hours';
+  const isMarketOpen = session === 'market';
+  const isClosed = session === 'closed';
+  const label = session === 'pre' ? 'Pre-Market'
+    : session === 'post' ? 'After-Hours'
+    : isMarketOpen ? 'Market Open'
+    : 'Market Closed';
   const topG = gainers.slice(0, 3);
   const topL = losers.slice(0, 3);
+  const hasData = topG.length > 0 || topL.length > 0;
 
   return (
     <SectionCard title="Pre/After" tabKey="movers" onNavigate={onNavigate}>
-      <div className="home-card-stat">{label} active</div>
-      {topG.length > 0 || topL.length > 0 ? (
+      <div className="home-card-stat">{label}{!isMarketOpen && !isClosed ? ' active' : ''}</div>
+      {hasData ? (
         <div className="home-movers-split">
           <div className="home-movers-col">
             <span className="home-movers-label home-movers-label--up">Gainers</span>
@@ -998,7 +1006,11 @@ function MoversPreview({ gainers, losers, session, onNavigate }) {
           </div>
         </div>
       ) : (
-        <SkeletonMoversSplit />
+        <div className="home-card-empty">
+          {isMarketOpen
+            ? 'Market is open — ext. hours data after close'
+            : 'No extended hours movers available'}
+        </div>
       )}
     </SectionCard>
   );
@@ -1008,8 +1020,11 @@ export default function Home({ active, gainers = [], losers = [], trending = [],
   const { articles } = useNewsFeed(active);
   const { earnings } = useEarningsCalendar(active);
   const { events } = useEconomicCalendar(active);
-  const session = useMemo(() => detectSession(), []);
-  const { gainers: preGainers, losers: preLosers } = useMovers(active, session);
+  const detectedSession = useMemo(() => detectSession(), []);
+  const apiSession = detectedSession === 'pre' ? 'pre'
+    : detectedSession === 'market' ? 'pre'
+    : 'post';
+  const { gainers: preGainers, losers: preLosers } = useMovers(active, apiSession);
   const { order, hidden, moveUp, moveDown, reorder, toggleVisibility, resetLayout } = useHomeLayout();
   const sparklines = useSparklineData(active);
   const [editMode, setEditMode] = useState(false);
@@ -1320,7 +1335,7 @@ export default function Home({ active, gainers = [], losers = [], trending = [],
           </SectionCard>
         );
       case 'movers':
-        return <MoversPreview gainers={preGainers} losers={preLosers} session={session} onNavigate={onTabChange} />;
+        return <MoversPreview gainers={preGainers} losers={preLosers} session={detectedSession} onNavigate={onTabChange} />;
       case 'trending':
         return (
           <SectionCard title="Trending" tabKey="trending" onNavigate={onTabChange}>
@@ -1357,15 +1372,15 @@ export default function Home({ active, gainers = [], losers = [], trending = [],
         return <EarningsPreview earnings={earnings} onNavigate={onTabChange} />;
       case 'economy':
         return <EconomicPreview events={events} onNavigate={onTabChange} />;
-      case 'watchlist':
+      case 'favorites':
         return (
-          <SectionCard title="Watchlist" tabKey="home" onNavigate={() => {}} className="home-card--watchlist">
+          <SectionCard title="Favorites" tabKey="favorites" onNavigate={onTabChange}>
             {favorites.length > 0 ? (
               <div className="home-stock-list">
                 {favorites.slice(0, 4).map(s => <StockRow key={s.symbol} stock={s} />)}
               </div>
             ) : (
-              <div className="home-card-empty">Star stocks to build your watchlist</div>
+              <div className="home-card-empty">Star stocks to build your favorites</div>
             )}
           </SectionCard>
         );
