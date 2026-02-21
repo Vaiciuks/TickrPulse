@@ -9726,6 +9726,7 @@ button, a, input, select, textarea {
 @media (max-width: 768px) {
   .smartmoney-main {
     padding: 16px;
+    overflow-x: hidden;
   }
 
   .smartmoney-header {
@@ -9749,13 +9750,21 @@ button, a, input, select, textarea {
 
   .smartmoney-tab-toggle {
     width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .smartmoney-tab-toggle::-webkit-scrollbar {
+    display: none;
   }
 
   .smartmoney-tab-btn {
-    flex: 1;
-    padding: 6px 8px;
+    flex: 0 0 auto;
+    padding: 6px 12px;
     font-size: 12px;
     text-align: center;
+    white-space: nowrap;
   }
 
   .smartmoney-table {
