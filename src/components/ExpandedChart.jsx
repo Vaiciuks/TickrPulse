@@ -8,6 +8,7 @@ import { formatPrice, formatVolume } from '../utils/formatters.js';
 import { CHART_REFRESH_FACTOR } from '../utils/constants.js';
 import { calcEMA, calcRSI, calcMACD, calcVWAP } from '../utils/indicators.js';
 import { SessionHighlighter, projectForwardTimestamps } from '../utils/sessionHighlight.js';
+import { RoundedCandleSeries } from '../utils/roundedCandles.js';
 import StockLogo from './StockLogo.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
@@ -171,6 +172,7 @@ function makeChartOptions(container, opts = {}) {
       secondsVisible: false,
       visible: opts.timeScaleVisible ?? true,
       barSpacing: 9,
+      minBarSpacing: 5,
     },
     rightPriceScale: {
       borderColor: tc.border,
@@ -410,10 +412,9 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     } else if (chartType === 'bar') {
       mainSeries = chart.addBarSeries({ upColor: '#00d66b', downColor: '#ff2952', thinBars: false });
     } else {
-      mainSeries = chart.addCandlestickSeries({
-        upColor: '#00d66b', downColor: '#ff2952',
-        borderUpColor: '#00d66b', borderDownColor: '#ff2952',
-        wickUpColor: '#00d66b', wickDownColor: '#ff2952',
+      mainSeries = chart.addCustomSeries(new RoundedCandleSeries(), {
+        upColor: '#00d66b', downColor: '#ff2952', radius: 2.5,
+        priceLineVisible: true, lastValueVisible: true,
       });
     }
     candleSeriesRef.current = mainSeries;
