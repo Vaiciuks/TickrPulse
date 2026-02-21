@@ -4461,16 +4461,24 @@ button, a, input, select, textarea {
 
 .earnings-card-change {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
 }
 
 .earnings-card-change.positive {
   color: var(--green-primary);
+  background: var(--green-dim);
+  box-shadow: 0 0 12px rgba(0, 214, 107, 0.15);
 }
 
 .earnings-card-change.negative {
   color: var(--red-primary);
+  background: rgba(255, 41, 82, 0.1);
+  box-shadow: 0 0 12px rgba(255, 41, 82, 0.15);
 }
 
 .earnings-card-name {
@@ -4954,17 +4962,25 @@ button, a, input, select, textarea {
 }
 
 .movers-row-change {
-  font-size: 13px;
+  font-size: 12px;
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
 }
 
 .movers-row-change.positive {
   color: var(--green-primary);
+  background: var(--green-dim);
+  box-shadow: 0 0 12px rgba(0, 214, 107, 0.15);
 }
 
 .movers-row-change.negative {
   color: var(--red-primary);
+  background: rgba(255, 41, 82, 0.1);
+  box-shadow: 0 0 12px rgba(255, 41, 82, 0.15);
 }
 
 .movers-row-volume {
@@ -5934,6 +5950,10 @@ button, a, input, select, textarea {
     overflow-y: visible;
     padding: 16px;
     gap: 12px;
+  }
+
+  .earnings-main .smartmoney-tab-toggle {
+    width: auto;
   }
 }
 
