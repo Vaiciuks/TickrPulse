@@ -282,7 +282,6 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
   const [showAlertInput, setShowAlertInput] = useState(false);
   const [alertPrice, setAlertPrice] = useState('');
   const [alertDirection, setAlertDirection] = useState('above');
-  const alertRef = useRef(null);
 
   // Stock notes
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -1193,15 +1192,8 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     compareSeriesRef.current = series;
   }, [compareData, data]);
 
-  // Close alert popover on outside click
-  useEffect(() => {
-    if (!showAlertInput) return;
-    const close = (e) => {
-      if (alertRef.current && !alertRef.current.contains(e.target)) setShowAlertInput(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [showAlertInput]);
+  // Lock scroll when alert panel is open on mobile
+  useScrollLock(showAlertInput && window.innerWidth <= 768);
 
   // Comprehensive keyboard handler (Esc + number keys for timeframes)
   useEffect(() => {
@@ -1278,7 +1270,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
             </button>
           )}
           {!compact && onAddAlert && (
-            <div className="alert-wrapper" ref={alertRef}>
+            <div className="alert-wrapper">
               <button
                 className={`expanded-alert-btn${alerts.length > 0 ? ' has-alerts' : ''}`}
                 onClick={() => { setShowAlertInput(prev => !prev); setAlertPrice(livePrice.toFixed(2)); }}
@@ -1290,44 +1282,47 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
                 </svg>
                 {alerts.length > 0 && <span className="alert-count">{alerts.length}</span>}
               </button>
-              {showAlertInput && (
-                <div className="alert-popover">
-                  <div className="alert-popover-title">Set Price Alert</div>
-                  <div className="alert-popover-row">
-                    <select value={alertDirection} onChange={e => setAlertDirection(e.target.value)} className="alert-direction">
-                      <option value="above">Above</option>
-                      <option value="below">Below</option>
-                    </select>
-                    <input
-                      type="number"
-                      step="any"
-                      className="alert-price-input"
-                      value={alertPrice}
-                      onChange={e => setAlertPrice(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          const p = parseFloat(alertPrice);
-                          if (p > 0) { onAddAlert(stock.symbol, p, alertDirection); setShowAlertInput(false); }
-                        }
-                      }}
-                      autoFocus
-                    />
-                    <button className="alert-add-btn" onClick={() => {
-                      const p = parseFloat(alertPrice);
-                      if (p > 0) { onAddAlert(stock.symbol, p, alertDirection); setShowAlertInput(false); }
-                    }}>Add</button>
-                  </div>
-                  {alerts.length > 0 && (
-                    <div className="alert-list">
-                      {alerts.map(a => (
-                        <div key={a.id} className="alert-list-item">
-                          <span>{a.direction === 'above' ? '\u2191' : '\u2193'} ${a.targetPrice.toFixed(2)}</span>
-                          <button className="alert-remove" onClick={() => onRemoveAlert(a.id)}>&times;</button>
-                        </div>
-                      ))}
+              {showAlertInput && createPortal(
+                <div className="alert-overlay" onClick={() => setShowAlertInput(false)}>
+                  <div className="alert-popover" onClick={e => e.stopPropagation()}>
+                    <div className="alert-popover-title">Set Price Alert</div>
+                    <div className="alert-popover-row">
+                      <select value={alertDirection} onChange={e => setAlertDirection(e.target.value)} className="alert-direction">
+                        <option value="above">Above</option>
+                        <option value="below">Below</option>
+                      </select>
+                      <input
+                        type="number"
+                        step="any"
+                        className="alert-price-input"
+                        value={alertPrice}
+                        onChange={e => setAlertPrice(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            const p = parseFloat(alertPrice);
+                            if (p > 0) { onAddAlert(stock.symbol, p, alertDirection); setShowAlertInput(false); }
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <button className="alert-add-btn" onClick={() => {
+                        const p = parseFloat(alertPrice);
+                        if (p > 0) { onAddAlert(stock.symbol, p, alertDirection); setShowAlertInput(false); }
+                      }}>Add</button>
                     </div>
-                  )}
-                </div>
+                    {alerts.length > 0 && (
+                      <div className="alert-list">
+                        {alerts.map(a => (
+                          <div key={a.id} className="alert-list-item">
+                            <span>{a.direction === 'above' ? '\u2191' : '\u2193'} ${a.targetPrice.toFixed(2)}</span>
+                            <button className="alert-remove" onClick={() => onRemoveAlert(a.id)}>&times;</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>,
+                document.body
               )}
             </div>
           )}
