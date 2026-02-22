@@ -1,12 +1,11 @@
 import { Router } from 'express';
 import { withCache } from '../middleware/cache.js';
 import { SECTORS } from './heatmap.js';
-
 import { yahooFetchRaw } from '../lib/yahooCrumb.js';
+import { fetchBatchQuotes } from '../lib/yahooFetch.js';
 
 const router = Router();
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
-const SCREENER_URL = 'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved';
 
 function getApiKey() {
   return process.env.FINNHUB_API_KEY || '';
@@ -22,7 +21,7 @@ for (const sector of SECTORS) {
   }
 }
 
-// Fetch Finnhub earnings calendar for a date range (all companies)
+// Fetch Finnhub earnings calendar for a date range
 async function fetchFinnhubCalendar(from, to) {
   const apiKey = getApiKey();
   if (!apiKey) return [];
@@ -37,12 +36,34 @@ async function fetchFinnhubCalendar(from, to) {
   }
 }
 
-// Fetch stocks from a Yahoo screener (for price/market cap enrichment)
-async function fetchScreener(scrId, count = 100) {
+// Fetch earnings from Yahoo Finance screener by date range (returns stocks WITH enrichment data)
+async function fetchYahooEarnings(fromDate, toDate, offset = 0) {
   try {
-    const res = await yahooFetchRaw(`${SCREENER_URL}?scrIds=${scrId}&count=${count}`, {
-      signal: AbortSignal.timeout(10000),
+    const fromTs = Math.floor(new Date(fromDate).getTime() / 1000);
+    const toTs = Math.floor(new Date(toDate).getTime() / 1000);
+
+    const body = JSON.stringify({
+      size: 250,
+      offset,
+      sortField: 'intradaymarketcap',
+      sortType: 'DESC',
+      quoteType: 'EQUITY',
+      query: {
+        operator: 'AND',
+        operands: [
+          { operator: 'BTWN', operands: ['earningsdate', fromTs, toTs] },
+          { operator: 'EQ', operands: ['region', 'us'] },
+        ],
+      },
     });
+
+    const res = await yahooFetchRaw('https://query2.finance.yahoo.com/v1/finance/screener', {
+      method: 'POST',
+      body,
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(15000),
+    });
+
     if (!res.ok) return [];
     const data = await res.json();
     return data.finance?.result?.[0]?.quotes || [];
@@ -69,23 +90,28 @@ router.get('/', withCache(120), async (req, res, next) => {
     const fromStr = from.toISOString().split('T')[0];
     const toStr = to.toISOString().split('T')[0];
 
-    // Fetch Finnhub calendar + Yahoo screeners in parallel
-    const [finnhubResult, actives, gainers, losers, growth, undervalued] = await Promise.allSettled([
+    // Midpoint to split Yahoo screener into two date ranges for better coverage
+    const mid = new Date();
+    mid.setDate(mid.getDate() + 14);
+    const midStr = mid.toISOString().split('T')[0];
+
+    // Fetch Finnhub + Yahoo earnings screener in parallel
+    // Yahoo screener: 2 date ranges × 2 pages = up to 1000 stocks
+    const [finnhubResult, yahooA1, yahooA2, yahooB1, yahooB2] = await Promise.allSettled([
       fetchFinnhubCalendar(fromStr, toStr),
-      fetchScreener('most_actives', 200),
-      fetchScreener('day_gainers', 100),
-      fetchScreener('day_losers', 100),
-      fetchScreener('growth_technology_stocks', 100),
-      fetchScreener('undervalued_large_caps', 100),
+      fetchYahooEarnings(fromStr, midStr, 0),
+      fetchYahooEarnings(fromStr, midStr, 250),
+      fetchYahooEarnings(midStr, toStr, 0),
+      fetchYahooEarnings(midStr, toStr, 250),
     ]);
 
-    // Build Yahoo enrichment map: symbol → { price, changePercent, marketCap, ... }
+    // Build Yahoo enrichment map from earnings screener results
     const yahooMap = new Map();
-    const allQuotes = [actives, gainers, losers, growth, undervalued]
+    const allYahooQuotes = [yahooA1, yahooA2, yahooB1, yahooB2]
       .map(r => r.status === 'fulfilled' ? r.value : [])
       .flat();
 
-    for (const q of allQuotes) {
+    for (const q of allYahooQuotes) {
       if (!q.symbol || yahooMap.has(q.symbol)) continue;
       yahooMap.set(q.symbol, {
         price: q.regularMarketPrice,
@@ -99,23 +125,27 @@ router.get('/', withCache(120), async (req, res, next) => {
       });
     }
 
-    // Start with Finnhub calendar (comprehensive)
+    // Start with Finnhub calendar
     const earnings = {};
     const seen = new Set();
     const finnhubData = finnhubResult.status === 'fulfilled' ? finnhubResult.value : [];
 
+    // Collect unenriched Finnhub symbols for batch quote fallback
+    const unenrichedSymbols = [];
+
     for (const entry of finnhubData) {
       if (!entry.symbol || !entry.date) continue;
-      // Only US stocks (skip entries with dots like foreign tickers unless common like BRK.B)
+      // Only US stocks (skip foreign tickers with dots unless BRK.B style)
       if (entry.symbol.includes('.') && !entry.symbol.match(/^[A-Z]+\.[A-Z]$/)) continue;
 
       const dateKey = entry.date;
-      const yahoo = yahooMap.get(entry.symbol);
-
-      if (!earnings[dateKey]) earnings[dateKey] = [];
       if (seen.has(`${entry.symbol}-${dateKey}`)) continue;
       seen.add(`${entry.symbol}-${dateKey}`);
 
+      const yahoo = yahooMap.get(entry.symbol);
+      if (!yahoo) unenrichedSymbols.push(entry.symbol);
+
+      if (!earnings[dateKey]) earnings[dateKey] = [];
       earnings[dateKey].push({
         symbol: entry.symbol,
         name: yahoo?.name || entry.symbol,
@@ -128,7 +158,7 @@ router.get('/', withCache(120), async (req, res, next) => {
       });
     }
 
-    // Also add Yahoo-only stocks that Finnhub missed (with earningsTimestamp)
+    // Add Yahoo-only stocks that Finnhub missed
     for (const [symbol, yahoo] of yahooMap) {
       if (!yahoo.earningsTs) continue;
       const dateKey = new Date(yahoo.earningsTs * 1000).toISOString().split('T')[0];
@@ -148,13 +178,39 @@ router.get('/', withCache(120), async (req, res, next) => {
       });
     }
 
+    // Batch-fetch quotes for Finnhub stocks that Yahoo screener didn't cover
+    if (unenrichedSymbols.length > 0) {
+      try {
+        const unique = [...new Set(unenrichedSymbols)].slice(0, 300);
+        const batchQuotes = await fetchBatchQuotes(unique);
+        const quoteMap = new Map();
+        for (const q of batchQuotes) {
+          if (q.symbol) quoteMap.set(q.symbol, q);
+        }
+        // Backfill missing data in earnings entries
+        for (const dateKey of Object.keys(earnings)) {
+          for (const stock of earnings[dateKey]) {
+            if (stock.price) continue; // already enriched
+            const q = quoteMap.get(stock.symbol);
+            if (!q) continue;
+            stock.name = q.shortName || q.longName || stock.name;
+            stock.price = q.regularMarketPrice ?? null;
+            stock.changePercent = q.regularMarketChangePercent ?? null;
+            stock.marketCap = q.marketCap ?? null;
+          }
+        }
+      } catch {
+        // Non-critical — stocks just show without price data
+      }
+    }
+
     // Sort each day by market cap (stocks without marketCap go to end)
     for (const dateKey of Object.keys(earnings)) {
       earnings[dateKey].sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
     }
 
     const totalStocks = Object.values(earnings).reduce((s, arr) => s + arr.length, 0);
-    console.log(`[earnings] Finnhub: ${finnhubData.length} entries, Yahoo: ${yahooMap.size} enrichment stocks, ${totalStocks} total across ${Object.keys(earnings).length} dates`);
+    console.log(`[earnings] Finnhub: ${finnhubData.length}, Yahoo screener: ${allYahooQuotes.length}, unenriched backfilled: ${unenrichedSymbols.length}, total: ${totalStocks} across ${Object.keys(earnings).length} dates`);
 
     res.json({ earnings, timestamp: new Date().toISOString() });
   } catch (error) {
