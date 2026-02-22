@@ -4584,6 +4584,11 @@ button, a, input, select, textarea {
   font-weight: 600;
   color: var(--text-primary);
 }
+.ecal-card-mcap {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
 
 .ecal-card-change {
   font-size: 12px;

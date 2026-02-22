@@ -95,10 +95,16 @@ function EarningsCard({ stock, onClick }) {
         </div>
       </div>
       <div className="ecal-card-right">
-        <span className="ecal-card-price">${formatPrice(stock.price)}</span>
-        <span className={`ecal-card-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
-          {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent?.toFixed(2)}%
-        </span>
+        {stock.price != null ? (
+          <>
+            <span className="ecal-card-price">${formatPrice(stock.price)}</span>
+            <span className={`ecal-card-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
+              {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent?.toFixed(2)}%
+            </span>
+          </>
+        ) : (
+          <span className="ecal-card-mcap">{formatMarketCap(stock.marketCap)}</span>
+        )}
       </div>
     </button>
   );
