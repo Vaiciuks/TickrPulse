@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { withCache } from '../middleware/cache.js';
-import { yahooAuthFetch } from '../lib/yahooCrumb.js';
+import { yahooAuthFetch, USER_AGENT } from '../lib/yahooCrumb.js';
 
 const router = Router();
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const YAHOO_SUMMARY = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary';
+const NASDAQ_BASE = 'https://api.nasdaq.com/api';
 
 function getApiKey() {
   return process.env.FINNHUB_API_KEY || '';
@@ -167,10 +168,6 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
     }
 
     const apiKey = getApiKey();
-    if (!apiKey) {
-      return res.status(500).json({ error: 'FINNHUB_API_KEY not configured' });
-    }
-
     const sym = encodeURIComponent(symbol.toUpperCase());
 
     // Wide date range for calendar earnings (3 years back to 6 months forward)
@@ -181,21 +178,37 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
     const fromStr = from.toISOString().split('T')[0];
     const toStr = to.toISOString().split('T')[0];
 
-    // Yahoo Finance for quarterly revenue history + earnings trend + financial data
+    // Yahoo Finance for quarterly data (added 'earnings' module for earningsChart)
     async function fetchYahooQuarterly() {
       try {
-        const url = `${YAHOO_SUMMARY}/${sym}?modules=incomeStatementHistoryQuarterly,earningsHistory,earningsTrend,financialData`;
+        const url = `${YAHOO_SUMMARY}/${sym}?modules=incomeStatementHistoryQuarterly,earningsHistory,earningsTrend,financialData,earnings`;
         return await yahooAuthFetch(url);
       } catch {
         return null;
       }
     }
 
-    const [epsResult, recResult, calResult, yahooResult] = await Promise.allSettled([
-      fetchJSON(`${FINNHUB_BASE}/stock/earnings?symbol=${sym}&limit=20&token=${apiKey}`),
-      fetchJSON(`${FINNHUB_BASE}/stock/recommendation?symbol=${sym}&token=${apiKey}`),
-      fetchJSON(`${FINNHUB_BASE}/calendar/earnings?symbol=${sym}&from=${fromStr}&to=${toStr}&token=${apiKey}`),
+    // Nasdaq earnings-surprise (4 quarters of EPS actual vs consensus)
+    async function fetchNasdaqSurprise() {
+      try {
+        const res = await fetch(`${NASDAQ_BASE}/company/${sym}/earnings-surprise`, {
+          headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.data?.earningsSurpriseTable?.rows || [];
+      } catch {
+        return [];
+      }
+    }
+
+    const [epsResult, recResult, calResult, yahooResult, nasdaqResult] = await Promise.allSettled([
+      apiKey ? fetchJSON(`${FINNHUB_BASE}/stock/earnings?symbol=${sym}&limit=20&token=${apiKey}`) : [],
+      apiKey ? fetchJSON(`${FINNHUB_BASE}/stock/recommendation?symbol=${sym}&token=${apiKey}`) : [],
+      apiKey ? fetchJSON(`${FINNHUB_BASE}/calendar/earnings?symbol=${sym}&from=${fromStr}&to=${toStr}&token=${apiKey}`) : { earningsCalendar: [] },
       fetchYahooQuarterly(),
+      fetchNasdaqSurprise(),
     ]);
 
     // Calendar data (has revenue + sometimes more recent EPS)
@@ -203,46 +216,105 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
       ? (calResult.value?.earningsCalendar || [])
       : [];
 
+    // Extract Yahoo data early — used by both EPS and revenue sections
+    const yahooData = yahooResult.status === 'fulfilled' ? yahooResult.value : null;
+
     // EPS history from /stock/earnings endpoint
     const epsRaw = epsResult.status === 'fulfilled' ? (epsResult.value || []) : [];
 
-    // Build a merged EPS history: start with /stock/earnings, then fill in
-    // any quarters from calendar that have actual EPS data but aren't in epsRaw
+    // Yahoo earningsChart.quarterly — has 4 quarters with actual + estimate + surprise
+    const yahooEarningsChart = yahooData?.quoteSummary?.result?.[0]
+      ?.earnings?.earningsChart?.quarterly || [];
+
+    // Nasdaq earnings-surprise — 4 quarters with EPS actual + consensus forecast
+    const nasdaqSurprise = nasdaqResult.status === 'fulfilled' ? nasdaqResult.value : [];
+
+    // Build a merged EPS history from ALL sources, keyed by period-end date
+    // to avoid fiscal-vs-calendar year duplicates
     const epsByPeriod = new Map();
 
-    // Add all from /stock/earnings (keyed by period date)
-    for (const q of epsRaw) {
-      if (!q.period) continue;
-      epsByPeriod.set(q.period, {
-        period: q.period,
-        quarter: q.quarter || 0,
-        year: q.year || 0,
-        actual: q.actual ?? null,
-        estimate: q.estimate ?? null,
-        surprisePercent: q.surprisePercent ?? null,
+    // Helper: find existing entry by period-end date proximity (within 45 days)
+    function findByDateProximity(dateStr) {
+      if (!dateStr) return null;
+      const target = new Date(dateStr).getTime();
+      for (const [key, entry] of epsByPeriod) {
+        const diff = Math.abs(new Date(key).getTime() - target);
+        if (diff < 45 * 86400000) return entry; // within 45 days
+      }
+      return null;
+    }
+
+    // 1) Yahoo earningsChart.quarterly (most reliable — has periodEndDate, actual, estimate)
+    for (const q of yahooEarningsChart) {
+      const periodEnd = q.periodEndDate?.fmt;
+      if (!periodEnd) continue;
+      const calQ = q.calendarQuarter || q.date || '';
+      const qMatch = calQ.match(/(\d)Q(\d{4})/);
+      epsByPeriod.set(periodEnd, {
+        period: periodEnd,
+        quarter: qMatch ? parseInt(qMatch[1]) : 0,
+        year: qMatch ? parseInt(qMatch[2]) : 0,
+        actual: q.actual?.raw ?? null,
+        estimate: q.estimate?.raw ?? null,
+        surprisePercent: parseFloat(q.surprisePct) || null,
       });
     }
 
-    // Merge calendar entries that have actual EPS data and aren't already covered
+    // 2) Finnhub /stock/earnings — add quarters not already covered by Yahoo
+    for (const q of epsRaw) {
+      if (!q.period) continue;
+      const existing = findByDateProximity(q.period);
+      if (existing) {
+        // Merge: fill in missing data
+        if (existing.estimate == null && q.estimate != null) existing.estimate = q.estimate;
+        if (existing.surprisePercent == null && q.surprisePercent != null) existing.surprisePercent = q.surprisePercent;
+      } else {
+        epsByPeriod.set(q.period, {
+          period: q.period,
+          quarter: q.quarter || 0,
+          year: q.year || 0,
+          actual: q.actual ?? null,
+          estimate: q.estimate ?? null,
+          surprisePercent: q.surprisePercent ?? null,
+        });
+      }
+    }
+
+    // 3) Nasdaq earnings-surprise — fill in estimates for entries that are missing them
+    for (const row of nasdaqSurprise) {
+      if (row.eps == null) continue;
+      const consensus = parseFloat(String(row.consensusForecast).replace(/[$,]/g, ''));
+      if (isNaN(consensus)) continue;
+
+      // Match by similar EPS actual value
+      for (const [, existing] of epsByPeriod) {
+        if (existing.estimate != null) continue;
+        if (existing.actual == null) continue;
+        if (Math.abs(existing.actual - row.eps) < 0.015) {
+          existing.estimate = consensus;
+          if (existing.surprisePercent == null) {
+            existing.surprisePercent = parseFloat(row.percentageSurprise) || null;
+          }
+          break;
+        }
+      }
+    }
+
+    // 4) Finnhub calendar — add future quarters and any remaining historical quarters
     for (const e of calRaw) {
       if (e.epsActual == null && e.epsEstimate == null) continue;
       if (!e.date) continue;
 
-      // Calendar dates may not match exact period-end dates from /stock/earnings.
-      // Use quarter+year as a fallback key to avoid duplicates.
-      const qKey = `Q${e.quarter}-${e.year}`;
-      const alreadyHas = [...epsByPeriod.values()].some(
-        existing => existing.quarter === e.quarter && existing.year === e.year
-      );
-
-      if (!alreadyHas) {
-        // Derive a period-end date from the calendar entry
-        const periodEnd = e.date; // best approximation
+      const existing = findByDateProximity(e.date);
+      if (existing) {
+        if (existing.estimate == null && e.epsEstimate != null) existing.estimate = e.epsEstimate;
+        if (existing.actual == null && e.epsActual != null) existing.actual = e.epsActual;
+      } else {
         const surprise = (e.epsActual != null && e.epsEstimate != null && e.epsEstimate !== 0)
           ? ((e.epsActual - e.epsEstimate) / Math.abs(e.epsEstimate)) * 100
           : null;
-        epsByPeriod.set(periodEnd, {
-          period: periodEnd,
+        epsByPeriod.set(e.date, {
+          period: e.date,
           quarter: e.quarter || 0,
           year: e.year || 0,
           actual: e.epsActual ?? null,
@@ -252,12 +324,28 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
       }
     }
 
-    // Sort oldest-first, take last 16 quarters for display
-    const allEps = [...epsByPeriod.values()]
-      .filter(q => q.actual != null || q.estimate != null)
-      .sort((a, b) => (a.period || '').localeCompare(b.period || ''));
+    // Final dedup: remove entries that share the same actual EPS and are within 90 days
+    const sortedEps = [...epsByPeriod.entries()]
+      .filter(([, q]) => q.actual != null || q.estimate != null)
+      .sort(([a], [b]) => a.localeCompare(b));
 
-    const epsHistory = allEps.slice(-16).map(q => ({
+    const dedupedEps = [];
+    for (const [key, entry] of sortedEps) {
+      const dup = dedupedEps.find(e =>
+        e.actual != null && entry.actual != null
+        && Math.abs(e.actual - entry.actual) < 0.015
+        && Math.abs(new Date(e.period).getTime() - new Date(entry.period).getTime()) < 90 * 86400000
+      );
+      if (dup) {
+        // Keep the one with more data (prefer one with estimate)
+        if (entry.estimate != null && dup.estimate == null) dup.estimate = entry.estimate;
+        if (entry.surprisePercent != null && dup.surprisePercent == null) dup.surprisePercent = entry.surprisePercent;
+      } else {
+        dedupedEps.push(entry);
+      }
+    }
+
+    const epsHistory = dedupedEps.slice(-16).map(q => ({
       ...q,
       beat: q.actual != null && q.estimate != null ? q.actual > q.estimate : null,
     }));
@@ -266,7 +354,6 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
     const revByQtr = new Map(); // key: "Q{q}-{year}"
 
     // 1) Yahoo quarterly income statements (deeper history, actual revenue only)
-    const yahooData = yahooResult.status === 'fulfilled' ? yahooResult.value : null;
     const yahooIncome = yahooData?.quoteSummary?.result?.[0]
       ?.incomeStatementHistoryQuarterly?.incomeStatementHistory || [];
 
@@ -390,9 +477,10 @@ router.get('/:symbol', withCache(300), async (req, res, next) => {
       }
     }
 
-    // Sort oldest-first, compute beat/miss
+    // Sort oldest-first by year+quarter (date-based sort breaks for Finnhub
+    // announcement dates vs Yahoo period-end dates), then compute beat/miss
     const revenueHistory = [...revByQtr.values()]
-      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+      .sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter))
       .slice(-12)
       .map(r => ({
         ...r,

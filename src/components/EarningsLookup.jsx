@@ -136,6 +136,7 @@ export default function EarningsLookup({ active, onSelectStock }) {
   const revMax = revChart.length > 0
     ? Math.max(...revChart.flatMap(q => [q.revenueActual ?? 0, q.revenueEstimate ?? 0]), 1)
     : 1;
+  const revHasEstimates = revChart.some(q => q.revenueEstimate != null);
 
   // Analyst consensus
   const rec = data?.recommendation;
@@ -325,7 +326,7 @@ export default function EarningsLookup({ active, onSelectStock }) {
           {/* Revenue History Chart */}
           {revChart.length > 0 && (
             <div className="el-section">
-              <h3 className="el-section-title">Revenue History (Actual vs Estimate)</h3>
+              <h3 className="el-section-title">Revenue History{revHasEstimates ? ' (Actual vs Estimate)' : ''}</h3>
               <div className="el-bar-chart">
                 {revChart.map((q, i) => {
                   const estH = q.revenueEstimate != null ? (q.revenueEstimate / revMax) * 100 : 0;
@@ -365,7 +366,9 @@ export default function EarningsLookup({ active, onSelectStock }) {
                 })}
               </div>
               <div className="el-chart-legend">
-                <span className="el-legend-item"><span className="el-legend-dot estimate" /> Estimate</span>
+                {revHasEstimates && (
+                  <span className="el-legend-item"><span className="el-legend-dot estimate" /> Estimate</span>
+                )}
                 <span className="el-legend-item"><span className="el-legend-dot actual" /> Actual</span>
               </div>
             </div>
