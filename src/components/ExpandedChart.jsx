@@ -916,24 +916,31 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
             });
 
             if (isRay) {
-              const slope = (p2.price - p1.price) / (p2.time - p1.time);
-
-              // Extend ray along ACTUAL chart timestamps to avoid vertical
-              // artifacts in session gaps (overnight, weekends).  Using a
-              // synthetic far-future timestamp caused LWC to draw a vertical
-              // line when the timestamp landed in a gap.
               const allData = chartDataRef.current;
-              const points = [
-                { time: p1.time, value: p1.price },
-                { time: p2.time, value: p2.price },
-              ];
-              for (const candle of allData) {
-                if (candle.time > p2.time) {
-                  points.push({ time: candle.time, value: p2.price + slope * (candle.time - p2.time) });
+              // Use logical bar indices for slope so the ray stays visually
+              // straight across session gaps (overnight, weekends).  Timestamp-
+              // based slope bends because the time axis is non-uniform.
+              const idx1 = allData.findIndex(c => c.time >= p1.time);
+              const idx2 = allData.findIndex(c => c.time >= p2.time);
+
+              if (idx1 >= 0 && idx2 > idx1) {
+                const slopePerBar = (p2.price - p1.price) / (idx2 - idx1);
+                const points = [];
+                for (let i = idx1; i < allData.length; i++) {
+                  points.push({
+                    time: allData[i].time,
+                    value: p1.price + slopePerBar * (i - idx1),
+                  });
                 }
+                trendSeries.setData(points);
+              } else {
+                // Fallback: just the two clicked points
+                trendSeries.setData([
+                  { time: p1.time, value: p1.price },
+                  { time: p2.time, value: p2.price },
+                ]);
               }
 
-              trendSeries.setData(points);
               try { trendSeries.applyOptions({ autoscaleInfoProvider: () => null }); } catch {}
               setDrawings(prev => [...prev, { type: 'ray', series: trendSeries }]);
             } else {
