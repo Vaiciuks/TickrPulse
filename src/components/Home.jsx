@@ -744,26 +744,30 @@ function FearGreedGauge({ active, futures }) {
   const label = getScoreLabel(score);
   const color = getScoreColor(score);
 
-  // SVG semicircle gauge
-  const radius = 70;
-  const cx = 90;
-  const cy = 80;
-  const startAngle = Math.PI;
-  const endAngle = 0;
-  const scoreAngle = startAngle - (score / 100) * Math.PI;
+  // SVG semicircle gauge — 3D glowing arc
+  const cx = 100;
+  const cy = 90;
+  const outerR = 78;
+  const innerR = 58;
+  const midR = (outerR + innerR) / 2;
+  const trackWidth = outerR - innerR;
+  const scoreAngle = Math.PI - (score / 100) * Math.PI;
 
   // Needle endpoint
-  const needleLen = radius - 8;
+  const needleLen = outerR + 4;
+  const needleInner = innerR - 6;
   const nx = cx + needleLen * Math.cos(scoreAngle);
   const ny = cy - needleLen * Math.sin(scoreAngle);
+  const nix = cx + needleInner * Math.cos(scoreAngle);
+  const niy = cy - needleInner * Math.sin(scoreAngle);
 
   // Arc segments (5 color zones)
   const zones = [
-    { start: 0, end: 20, color: '#e01535' },
-    { start: 20, end: 40, color: '#f5652a' },
-    { start: 40, end: 60, color: '#f5a623' },
-    { start: 60, end: 80, color: '#8bc34a' },
-    { start: 80, end: 100, color: '#00d66b' },
+    { start: 0, end: 20, color: '#e01535', id: 'fear-extreme' },
+    { start: 20, end: 40, color: '#f5652a', id: 'fear' },
+    { start: 40, end: 60, color: '#f5a623', id: 'neutral' },
+    { start: 60, end: 80, color: '#8bc34a', id: 'greed' },
+    { start: 80, end: 100, color: '#00d66b', id: 'greed-extreme' },
   ];
 
   const arcPath = (startPct, endPct, r) => {
@@ -776,43 +780,129 @@ function FearGreedGauge({ active, futures }) {
     return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;
   };
 
+  // Tick marks every 10%
+  const ticks = [];
+  for (let i = 0; i <= 100; i += 10) {
+    const a = Math.PI - (i / 100) * Math.PI;
+    const isMain = i % 20 === 0;
+    const oR = outerR + (isMain ? 6 : 3);
+    const iR = outerR;
+    ticks.push({
+      x1: cx + iR * Math.cos(a), y1: cy - iR * Math.sin(a),
+      x2: cx + oR * Math.cos(a), y2: cy - oR * Math.sin(a),
+      main: isMain, pct: i,
+    });
+  }
+
   return (
     <div className="home-feargreed">
       <div className="home-feargreed-header">
         <span className="home-section-title">Fear & Greed</span>
       </div>
       <div className="home-feargreed-gauge">
-        <svg viewBox="0 0 180 100" className="home-feargreed-svg">
+        <svg viewBox="0 0 200 120" className="home-feargreed-svg">
+          <defs>
+            {/* Glow filters for each zone */}
+            {zones.map(z => (
+              <filter key={z.id} id={`glow-${z.id}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            ))}
+            {/* Needle glow */}
+            <filter id="glow-needle" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            {/* Score glow */}
+            <filter id="glow-score" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Background track (dim) */}
           {zones.map((z, i) => (
             <path
-              key={i}
-              d={arcPath(z.start, z.end, radius)}
+              key={`bg-${i}`}
+              d={arcPath(z.start, z.end, midR)}
               fill="none"
               stroke={z.color}
-              strokeWidth="10"
+              strokeWidth={trackWidth}
               strokeLinecap="butt"
-              opacity="0.3"
+              opacity="0.1"
             />
           ))}
-          {/* Active arc up to score */}
+
+          {/* Active arc with glow */}
           {zones.filter(z => z.start < score).map((z, i) => (
             <path
               key={`active-${i}`}
-              d={arcPath(z.start, Math.min(z.end, score), radius)}
+              d={arcPath(z.start, Math.min(z.end, score), midR)}
               fill="none"
               stroke={z.color}
-              strokeWidth="10"
+              strokeWidth={trackWidth}
               strokeLinecap="butt"
+              filter={`url(#glow-${z.id})`}
+              opacity="0.9"
             />
           ))}
-          {/* Needle */}
-          <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={color} strokeWidth="2.5" strokeLinecap="round" />
-          <circle cx={cx} cy={cy} r="4" fill={color} />
-          {/* Score text */}
-          <text x={cx} y={cy - 16} textAnchor="middle" fill={color} fontSize="22" fontWeight="700" fontFamily="var(--font-mono)">{score}</text>
+
+          {/* Tick marks */}
+          {ticks.map((t, i) => (
+            <line
+              key={`tick-${i}`}
+              x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+              stroke="rgba(255,255,255,0.25)"
+              strokeWidth={t.main ? 1.5 : 0.75}
+              strokeLinecap="round"
+            />
+          ))}
+
+          {/* Needle with glow */}
+          <line
+            x1={nix} y1={niy} x2={nx} y2={ny}
+            stroke={color}
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            filter="url(#glow-needle)"
+          />
+          {/* Needle hub */}
+          <circle cx={cx} cy={cy} r="5" fill={color} opacity="0.3" filter="url(#glow-needle)" />
+          <circle cx={cx} cy={cy} r="3" fill={color} />
+
+          {/* Score text with glow */}
+          <text
+            x={cx} y={cy - 20}
+            textAnchor="middle"
+            fill={color}
+            fontSize="26"
+            fontWeight="800"
+            fontFamily="var(--font-mono)"
+            filter="url(#glow-score)"
+          >{score}</text>
+
+          {/* Label text below center */}
+          <text
+            x={cx} y={cy + 14}
+            textAnchor="middle"
+            fill="rgba(255,255,255,0.5)"
+            fontSize="8"
+            fontWeight="600"
+            letterSpacing="0.1em"
+          >{label.toUpperCase()}</text>
         </svg>
       </div>
-      <div className="home-feargreed-label" style={{ color }}>{label}</div>
       <div className="home-feargreed-factors">
         {vixPrice != null && (
           <span className="home-feargreed-factor">

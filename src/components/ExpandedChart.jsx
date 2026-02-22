@@ -510,6 +510,13 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
         autoScale: false,
         scaleMargins: { top: newTop, bottom: newBottom },
       });
+      // Sync compare scale if active
+      try {
+        chart.priceScale('compare').applyOptions({
+          autoScale: false,
+          scaleMargins: { top: newTop, bottom: newBottom },
+        });
+      } catch {}
       e.stopPropagation();
       e.preventDefault();
     };
@@ -1134,7 +1141,11 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
       }
     };
     document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    document.addEventListener('touchend', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('touchend', close);
+    };
   }, [activePanel]);
 
   // Compare data fetching
@@ -1184,6 +1195,7 @@ export default function ExpandedChart({ stock, onClose, isFavorite, onToggleFavo
     chart.priceScale('compare').applyOptions({
       scaleMargins: { top: 0.1, bottom: 0.3 },
       borderVisible: false,
+      autoScale: true,
     });
 
     series.setData(compareData.map(d => ({

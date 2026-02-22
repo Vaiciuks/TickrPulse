@@ -36,9 +36,15 @@ function formatMarketCap(mc) {
 function MoverRow({ stock, rank, type, onClick }) {
   const isGainer = type === 'gainer';
   const prevPriceRef = useRef(stock.price);
+  const mountedRef = useRef(false);
   const [flash, setFlash] = useState(null);
 
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      prevPriceRef.current = stock.price;
+      return;
+    }
     const prev = prevPriceRef.current;
     if (prev != null && stock.price !== prev) {
       setFlash(stock.price > prev ? 'flash-up' : 'flash-down');

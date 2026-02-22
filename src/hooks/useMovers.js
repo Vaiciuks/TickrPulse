@@ -38,8 +38,8 @@ export function useMovers(active, session) {
         return { ...s, price: newPrice, change: changePct, changeAbs, volume: q.volume ?? s.volume };
       });
 
-      setGainers(update);
-      setLosers(update);
+      setGainers(prev => update(prev).sort((a, b) => b.change - a.change));
+      setLosers(prev => update(prev).sort((a, b) => a.change - b.change));
       setLastUpdated(new Date());
     } catch {
       // ignore poll failures

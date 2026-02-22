@@ -7905,27 +7905,20 @@ button, a, input, select, textarea {
 
 .home-feargreed-gauge {
   width: 100%;
-  max-width: 200px;
+  max-width: 240px;
 }
 
 .home-feargreed-svg {
   width: 100%;
   height: auto;
   display: block;
-}
-
-.home-feargreed-label {
-  font-size: 14px;
-  font-weight: 700;
-  text-align: center;
-  margin-top: -4px;
-  letter-spacing: 0.02em;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.3));
 }
 
 .home-feargreed-factors {
   display: flex;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .home-feargreed-factor {
