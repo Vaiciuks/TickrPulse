@@ -2,7 +2,7 @@
 
 Real-time stock market dashboard with live quotes, interactive charts, heatmaps, AI-powered market digests, smart money tracking, and more.
 
-**Live:** [tickrview.up.railway.app](https://tickrview.up.railway.app)
+**Live:** [tickrview.com](https://tickrview.com)
 
 ---
 
