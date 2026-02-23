@@ -13,7 +13,7 @@ function timeAgo(unix) {
 }
 
 export default function DigestBanner() {
-  const { isPremium, session } = useAuth();
+  const { session } = useAuth();
   const [digest, setDigest] = useState(null);
   const [open, setOpen] = useState(false);
   const [, setTick] = useState(0);
@@ -102,11 +102,6 @@ export default function DigestBanner() {
                   <li key={i}>{bullet}</li>
                 ))}
               </ul>
-              {!isPremium && (
-                <p className="digest-upgrade-hint">
-                  Upgrade to Premium for AI-powered digest summaries.
-                </p>
-              )}
             </div>
           </div>,
           document.body,

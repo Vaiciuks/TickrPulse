@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
   }, [fetchProfile]);
 
   const user = session?.user ?? null;
-  const isPremium = true; // TODO: revert to `profile?.tier === 'premium'` after Supabase setup
+  const isPremium = true;
 
   const signIn = useCallback(
     (email, password) => supabase.auth.signInWithPassword({ email, password }),

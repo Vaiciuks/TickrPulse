@@ -50,58 +50,45 @@ const TABS = [
 const VALID_TABS = new Set([...TABS.map((t) => t.key), "portfolio"]);
 
 export default function App() {
-  const { session, isPremium } = useAuth();
+  const { session } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("home");
   const [expandedStock, setExpandedStock] = useState(null);
   const [gridStocks, setGridStocks] = useState([]);
   const [gridMinimized, setGridMinimized] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState(-1);
-  const [upgradePrompt, setUpgradePrompt] = useState(null);
   const skipPushRef = useRef(false);
   const isMobile = useMediaQuery("(max-width: 1024px)");
 
-  // Sidebar state — only persisted for logged-in users
   const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (session) {
-      const saved = localStorage.getItem("stock-scanner-sidebar");
-      return saved !== null ? saved === "true" : !isMobile;
-    }
-    return false;
+    const saved = localStorage.getItem("stock-scanner-sidebar");
+    return saved !== null ? saved === "true" : !isMobile;
   });
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => {
       const next = !prev;
-      if (session) localStorage.setItem("stock-scanner-sidebar", String(next));
+      localStorage.setItem("stock-scanner-sidebar", String(next));
       return next;
     });
-  }, [session]);
+  }, []);
 
-  // Recently viewed stocks — only persisted for logged-in users
   const [recentStocks, setRecentStocks] = useState(() => {
-    if (session) {
-      try {
-        return JSON.parse(localStorage.getItem("stock-scanner-recent") || "[]");
-      } catch {
-        return [];
-      }
+    try {
+      return JSON.parse(localStorage.getItem("stock-scanner-recent") || "[]");
+    } catch {
+      return [];
     }
-    return [];
   });
 
-  const addRecent = useCallback(
-    (stock) => {
-      if (!stock?.symbol) return;
-      setRecentStocks((prev) => {
-        const filtered = prev.filter((s) => s.symbol !== stock.symbol);
-        const next = [stock, ...filtered].slice(0, 15);
-        if (session)
-          localStorage.setItem("stock-scanner-recent", JSON.stringify(next));
-        return next;
-      });
-    },
-    [session],
-  );
+  const addRecent = useCallback((stock) => {
+    if (!stock?.symbol) return;
+    setRecentStocks((prev) => {
+      const filtered = prev.filter((s) => s.symbol !== stock.symbol);
+      const next = [stock, ...filtered].slice(0, 15);
+      localStorage.setItem("stock-scanner-recent", JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   // All hooks load initial data; only the active tab polls individual quotes
   const gainersData = useStocks(
@@ -178,7 +165,7 @@ export default function App() {
     getAlerts,
     checkAlerts,
     alertCount,
-  } = useAlerts(session, isPremium);
+  } = useAlerts(session);
 
   // Stock notes
   const {
@@ -274,15 +261,6 @@ export default function App() {
   const handleStockClick = useCallback(
     (stock, event) => {
       if (event && (event.ctrlKey || event.metaKey)) {
-        if (!isPremium) {
-          setUpgradePrompt("Multi-chart grid is a Premium feature.");
-          setTimeout(() => setUpgradePrompt(null), 3000);
-          // Fall back to single chart
-          setGridStocks([]);
-          setGridMinimized(false);
-          setExpandedStock(stock);
-          return;
-        }
         // Ctrl+click: toggle in grid selection
         setExpandedStock(null);
         setGridMinimized(false); // Re-open grid when adding/removing
@@ -300,7 +278,7 @@ export default function App() {
         addRecent(stock);
       }
     },
-    [isPremium, addRecent],
+    [addRecent],
   );
 
   const isInGrid = useCallback(
@@ -521,17 +499,7 @@ export default function App() {
             />
           ) : isHeatmap ? (
             <main className="heatmap-main">
-              {isPremium ? (
-                <Heatmap theme={theme} />
-              ) : (
-                <div className="upgrade-gate">
-                  <div className="upgrade-gate-icon">&#128274;</div>
-                  <h2>Heatmap is a Premium Feature</h2>
-                  <p>
-                    Upgrade to Premium to access the sector performance heatmap.
-                  </p>
-                </div>
-              )}
+              <Heatmap theme={theme} />
             </main>
           ) : isEarnings ? (
             <Earnings active={isEarnings} onSelectStock={handleEarningsClick} />
@@ -674,7 +642,6 @@ export default function App() {
           {gridStocks.length} charts selected
         </button>
       )}
-      {upgradePrompt && <div className="upgrade-toast">{upgradePrompt}</div>}
     </div>
   );
 }

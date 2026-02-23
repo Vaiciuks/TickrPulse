@@ -28,9 +28,7 @@ export function useFavorites(
   crypto = [],
   session = null,
 ) {
-  const [symbols, setSymbols] = useState(() =>
-    session ? loadFavorites() : [],
-  );
+  const [symbols, setSymbols] = useState(loadFavorites);
   const [extraQuotes, setExtraQuotes] = useState({});
   const pollRef = useRef(null);
   const queueRef = useRef([]);
@@ -40,12 +38,9 @@ export function useFavorites(
   // Derived Set for O(1) lookups
   const symbolSet = useMemo(() => new Set(symbols), [symbols]);
 
-  // Load/clear favorites when session changes
+  // Reset cloud sync flag when session changes
   useEffect(() => {
-    if (session) {
-      setSymbols(loadFavorites());
-    } else {
-      setSymbols([]);
+    if (!session) {
       initialSyncDone.current = false;
     }
   }, [!!session]);
@@ -92,11 +87,11 @@ export function useFavorites(
         const next = prev.includes(symbol)
           ? prev.filter((s) => s !== symbol)
           : [...prev, symbol];
-        if (session) saveFavorites(next);
+        saveFavorites(next);
         return next;
       });
     },
-    [session],
+    [],
   );
 
   const isFavorite = useCallback(
@@ -118,11 +113,11 @@ export function useFavorites(
         const next = [...prev];
         const [item] = next.splice(fromIndex, 1);
         next.splice(toIndex, 0, item);
-        if (session) saveFavorites(next);
+        saveFavorites(next);
         return next;
       });
     },
-    [session],
+    [],
   );
 
   // Build a lookup map from gainers + losers + trending

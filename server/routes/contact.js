@@ -71,14 +71,14 @@ router.post('/', async (req, res) => {
 
   try {
     await transporter.sendMail({
-      from: `"TickrPulse Contact" <${process.env.GMAIL_USER}>`,
+      from: `"TickrView Contact" <${process.env.GMAIL_USER}>`,
       to: RECIPIENT,
       replyTo: email,
-      subject: `TickrPulse Contact: ${name}`,
+      subject: `TickrView Contact: ${name}`,
       text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px;">
-          <h2 style="color: #00c853;">TickrPulse Contact Form</h2>
+          <h2 style="color: #00c853;">TickrView Contact Form</h2>
           <p><strong>From:</strong> ${name} (${email})</p>
           <hr style="border: 1px solid #333;" />
           <p style="white-space: pre-wrap;">${message}</p>

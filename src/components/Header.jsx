@@ -124,7 +124,7 @@ function HotkeysButton() {
                   <div className="hotkeys-guide-section">
                     <h4>Getting Started</h4>
                     <p>
-                      TickrPulse is a real-time stock market dashboard. Use the{" "}
+                      TickrView is a real-time stock market dashboard. Use the{" "}
                       <strong>tabs at the top</strong> to navigate between
                       sections. Search for any stock, ETF, index, or crypto
                       using the search bar. Click any stock card to open a full

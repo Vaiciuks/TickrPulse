@@ -28,7 +28,7 @@ function PrivacyModal({ onClose }) {
 
       <h3>Overview</h3>
       <p>
-        TickrPulse is a financial data aggregation tool that displays publicly
+        TickrView is a financial data aggregation tool that displays publicly
         available market information. We are committed to protecting your
         privacy and being transparent about our data practices.
       </p>
@@ -42,7 +42,7 @@ function PrivacyModal({ onClose }) {
         associated with your account so it can sync across devices.
       </p>
       <p>
-        <strong>Local Storage:</strong> TickrPulse stores preferences (selected
+        <strong>Local Storage:</strong> TickrView stores preferences (selected
         tab, sidebar state, theme, recently viewed stocks, and timeframe
         settings) locally on your device using browser localStorage. This data
         never leaves your device.
@@ -71,8 +71,8 @@ function PrivacyModal({ onClose }) {
 
       <h3>Third-Party Data Sources</h3>
       <p>
-        Market data displayed on TickrPulse is sourced from multiple third-party
-        providers. When you use TickrPulse, your browser makes requests to our
+        Market data displayed on TickrView is sourced from multiple third-party
+        providers. When you use TickrView, your browser makes requests to our
         server, which then fetches data from these providers on your behalf.{" "}
         <strong>
           We do not share any of your personal information with these data
@@ -238,7 +238,7 @@ function PrivacyModal({ onClose }) {
 
       <h3>Local Storage & Cookies</h3>
       <p>
-        TickrPulse uses browser localStorage to save your preferences (theme,
+        TickrView uses browser localStorage to save your preferences (theme,
         tab selection, recently viewed stocks, consent acknowledgment). This is
         not a cookie and does not track you across websites. You can clear this
         data at any time through your browser settings. We do not use any
@@ -247,14 +247,14 @@ function PrivacyModal({ onClose }) {
 
       <h3>Children's Privacy</h3>
       <p>
-        TickrPulse is not directed at children under 13 (or 16 in the EEA). We
+        TickrView is not directed at children under 13 (or 16 in the EEA). We
         do not knowingly collect information from children. If we become aware
         that we have collected data from a child, we will promptly delete it.
       </p>
 
       <h3>International Users</h3>
       <p>
-        TickrPulse is operated from the United States. If you access the service
+        TickrView is operated from the United States. If you access the service
         from outside the U.S., your information may be transferred to and
         processed in the U.S., where data protection laws may differ from those
         in your jurisdiction.
@@ -283,7 +283,7 @@ function TermsModal({ onClose }) {
 
       <h3>Acceptance of Terms</h3>
       <p>
-        By accessing and using TickrPulse, you agree to these terms. If you do
+        By accessing and using TickrView, you agree to these terms. If you do
         not agree with any part of these terms, please discontinue use of the
         service.
       </p>
@@ -291,19 +291,19 @@ function TermsModal({ onClose }) {
       <h3>Not Financial Advice</h3>
       <p>
         <strong>
-          TickrPulse is for informational and educational purposes only.
+          TickrView is for informational and educational purposes only.
         </strong>{" "}
         Nothing on this website constitutes financial advice, investment advice,
         trading advice, or any other form of professional advice. You should not
         make any investment decision based solely on information provided by
-        TickrPulse. Always consult with a qualified financial advisor before
+        TickrView. Always consult with a qualified financial advisor before
         making investment decisions.
       </p>
 
       <h3>Data Accuracy Disclaimer</h3>
       <p>
         Market data, stock quotes, charts, financial statistics, and other
-        information displayed on TickrPulse are sourced from third-party
+        information displayed on TickrView are sourced from third-party
         providers and may be delayed, inaccurate, or incomplete.{" "}
         <strong>
           We do not guarantee the accuracy, completeness, timeliness, or
@@ -329,7 +329,7 @@ function TermsModal({ onClose }) {
 
       <h3>No Warranty</h3>
       <p>
-        TickrPulse is provided "as is" and "as available" without warranties of
+        TickrView is provided "as is" and "as available" without warranties of
         any kind, either express or implied, including but not limited to
         implied warranties of merchantability, fitness for a particular purpose,
         and non-infringement. We do not warrant that the service will be
@@ -338,7 +338,7 @@ function TermsModal({ onClose }) {
 
       <h3>Limitation of Liability</h3>
       <p>
-        To the maximum extent permitted by law, TickrPulse and its operators,
+        To the maximum extent permitted by law, TickrView and its operators,
         directors, employees, and affiliates shall not be liable for any losses,
         damages, or costs arising from your use of or reliance on the
         information provided on this website. This includes, but is not limited
@@ -349,7 +349,7 @@ function TermsModal({ onClose }) {
 
       <h3>Indemnification</h3>
       <p>
-        You agree to indemnify and hold harmless TickrPulse and its operators
+        You agree to indemnify and hold harmless TickrView and its operators
         from any claims, losses, or damages (including legal fees) arising from
         your use of the service, your violation of these terms, or your
         violation of any third-party rights.
@@ -357,7 +357,7 @@ function TermsModal({ onClose }) {
 
       <h3>Third-Party Content & Data</h3>
       <p>
-        TickrPulse aggregates and displays data from multiple third-party
+        TickrView aggregates and displays data from multiple third-party
         sources including Yahoo Finance, TradingView, Finnhub, Quiver
         Quantitative, ApeWisdom, Coinbase, FINRA, and RSS news feeds from CNBC,
         Bloomberg, MarketWatch, and Google News. We are not affiliated with,
@@ -385,14 +385,14 @@ function TermsModal({ onClose }) {
 
       <h3>Intellectual Property</h3>
       <p>
-        The TickrPulse name, logo, and website design are the property of
-        TickrPulse. Market data and financial information displayed belong to
+        The TickrView name, logo, and website design are the property of
+        TickrView. Market data and financial information displayed belong to
         their respective data providers and are subject to their terms of use.
       </p>
 
       <h3>Prohibited Use</h3>
       <p>
-        You may not use TickrPulse to: systematically scrape, harvest, or
+        You may not use TickrView to: systematically scrape, harvest, or
         redistribute market data; use automated tools for data extraction;
         attempt to interfere with or disrupt the service; use the service for
         any unlawful purpose; or redistribute content without authorization. The
@@ -401,7 +401,7 @@ function TermsModal({ onClose }) {
 
       <h3>Service Availability</h3>
       <p>
-        TickrPulse relies on third-party APIs and data providers that may impose
+        TickrView relies on third-party APIs and data providers that may impose
         rate limits, experience downtime, or change their terms of service. We
         do not guarantee continuous or uninterrupted access to any data or
         feature. Features may be modified, added, or removed at any time without
@@ -425,7 +425,7 @@ function TermsModal({ onClose }) {
       <h3>Changes to Terms</h3>
       <p>
         We reserve the right to modify these terms at any time. Continued use of
-        TickrPulse after changes constitutes acceptance of the updated terms.
+        TickrView after changes constitutes acceptance of the updated terms.
       </p>
 
       <h3>Contact</h3>
@@ -444,7 +444,7 @@ function DoNotSellModal({ onClose }) {
 
       <h3>We Do Not Sell Your Data</h3>
       <p>
-        TickrPulse does not sell, rent, trade, or otherwise share your personal
+        TickrView does not sell, rent, trade, or otherwise share your personal
         information with third parties for monetary or other valuable
         consideration. This has been our practice since launch and will remain
         so.
@@ -614,12 +614,12 @@ function ConsentBanner({ onOpenPrivacy, onOpenTerms }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const accepted = localStorage.getItem("tickrpulse-consent");
+    const accepted = localStorage.getItem("tickrview-consent");
     if (!accepted) setVisible(true);
   }, []);
 
   const accept = () => {
-    localStorage.setItem("tickrpulse-consent", "accepted");
+    localStorage.setItem("tickrview-consent", "accepted");
     setVisible(false);
   };
 
@@ -628,7 +628,7 @@ function ConsentBanner({ onOpenPrivacy, onOpenTerms }) {
   return createPortal(
     <div className="consent-banner">
       <p className="consent-text">
-        TickrPulse uses browser localStorage to save your preferences
+        TickrView uses browser localStorage to save your preferences
         (favorites, settings). No tracking cookies are used. By continuing to
         use this site, you consent to our use of localStorage and agree to our{" "}
         <button className="consent-link" onClick={onOpenPrivacy}>
@@ -693,7 +693,7 @@ export default function Footer() {
             advice.
           </div>
           <div className="app-footer-copy">
-            &copy; {year} <span className="app-footer-brand">TickrPulse</span>.
+            &copy; {year} <span className="app-footer-brand">TickrView</span>.
             All rights reserved.
           </div>
         </div>

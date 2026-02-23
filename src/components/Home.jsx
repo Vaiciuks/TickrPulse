@@ -2046,7 +2046,7 @@ export default function Home({
         <div className="home-brand-top">
           <h1 className="home-brand-name">
             <span className="home-brand-tickr">Tickr</span>
-            <span className="home-brand-pulse">Pulse</span>
+            <span className="home-brand-pulse">View</span>
           </h1>
           <button
             className={`home-edit-toggle ${editMode ? "home-edit-toggle--active" : ""}`}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-const STORAGE_KEY = "tickrpulse-theme";
+const STORAGE_KEY = "tickrview-theme";
 
 export function useTheme() {
   const [theme, setTheme] = useState(() => {

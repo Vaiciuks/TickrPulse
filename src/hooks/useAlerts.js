@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { authFetch } from "../lib/authFetch.js";
 
 const STORAGE_KEY = "stock-scanner-alerts";
-const FREE_ALERT_LIMIT = 3;
 
 function loadAlerts() {
   try {
@@ -16,26 +15,16 @@ function saveAlerts(alerts) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
 }
 
-export function useAlerts(session = null, isPremium = false) {
-  const [alerts, setAlerts] = useState(() => (session ? loadAlerts() : []));
+export function useAlerts(session = null) {
+  const [alerts, setAlerts] = useState(loadAlerts);
   const notifiedRef = useRef(new Set());
   const syncTimeoutRef = useRef(null);
   const initialSyncDone = useRef(false);
 
-  // Load/clear alerts when session changes
+  // Always persist to localStorage
   useEffect(() => {
-    if (session) {
-      setAlerts(loadAlerts());
-    } else {
-      setAlerts([]);
-      initialSyncDone.current = false;
-    }
-  }, [!!session]);
-
-  // Persist whenever alerts change (only if logged in)
-  useEffect(() => {
-    if (session) saveAlerts(alerts);
-  }, [alerts, !!session]);
+    saveAlerts(alerts);
+  }, [alerts]);
 
   // Merge cloud alerts on login
   useEffect(() => {
@@ -90,12 +79,6 @@ export function useAlerts(session = null, isPremium = false) {
 
   const addAlert = useCallback(
     (symbol, targetPrice, direction) => {
-      const activeCount = alerts.filter((a) => a.active).length;
-      if (!isPremium && activeCount >= FREE_ALERT_LIMIT) {
-        return {
-          error: `Free tier limited to ${FREE_ALERT_LIMIT} active alerts. Upgrade to Premium for unlimited.`,
-        };
-      }
       const id = `${symbol}-${direction}-${targetPrice}-${Date.now()}`;
       setAlerts((prev) => [
         ...prev,
@@ -115,7 +98,7 @@ export function useAlerts(session = null, isPremium = false) {
         Notification.requestPermission();
       return { id };
     },
-    [alerts, isPremium],
+    [alerts],
   );
 
   const removeAlert = useCallback((id) => {

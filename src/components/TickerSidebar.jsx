@@ -237,7 +237,7 @@ export default function TickerSidebar({
   const [activeWatchTab, setActiveWatchTab] = useState("favorites");
   const [badgeMode, setBadgeMode] = useState(() => {
     try {
-      return localStorage.getItem("tickrpulse-badge-mode") || "percent";
+      return localStorage.getItem("tickrview-badge-mode") || "percent";
     } catch {
       return "percent";
     }
@@ -248,7 +248,7 @@ export default function TickerSidebar({
       const next =
         BADGE_MODES[(BADGE_MODES.indexOf(prev) + 1) % BADGE_MODES.length];
       try {
-        localStorage.setItem("tickrpulse-badge-mode", next);
+        localStorage.setItem("tickrview-badge-mode", next);
       } catch {}
       return next;
     });

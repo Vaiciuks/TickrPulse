@@ -1,6 +1,6 @@
 {
-  "name": "TickrPulse",
-  "short_name": "TickrPulse",
+  "name": "TickrView",
+  "short_name": "TickrView",
   "description": "Real-time stock market dashboard with heatmaps, AI digest, extended hours movers, and more.",
   "start_url": "/",
   "display": "standalone",

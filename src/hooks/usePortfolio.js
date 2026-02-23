@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { QUOTE_POLL_MS } from "../utils/constants.js";
 
-const STORAGE_KEY = "tickrpulse-portfolio";
+const STORAGE_KEY = "tickrview-portfolio";
 
 function loadPositions() {
   try {

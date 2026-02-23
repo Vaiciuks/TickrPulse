@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "../contexts/AuthContext.jsx";
+import { useState, useCallback } from "react";
 
-const STORAGE_KEY = "tickrpulse-stock-notes";
+const STORAGE_KEY = "tickrview-stock-notes";
 
 function loadNotes() {
   try {
@@ -16,16 +15,7 @@ function saveNotes(notes) {
 }
 
 export function useStockNotes() {
-  const { session } = useAuth();
-  const [notes, setNotes] = useState(() => (session ? loadNotes() : {}));
-
-  useEffect(() => {
-    if (session) {
-      setNotes(loadNotes());
-    } else {
-      setNotes({});
-    }
-  }, [!!session]);
+  const [notes, setNotes] = useState(loadNotes);
 
   const setNote = useCallback(
     (symbol, text) => {
@@ -37,11 +27,11 @@ export function useStockNotes() {
         } else {
           delete next[symbol];
         }
-        if (session) saveNotes(next);
+        saveNotes(next);
         return next;
       });
     },
-    [session],
+    [],
   );
 
   const getNote = useCallback(

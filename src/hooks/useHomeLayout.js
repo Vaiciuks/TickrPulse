@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "../contexts/AuthContext.jsx";
+import { useState, useCallback } from "react";
 
-const STORAGE_KEY = "tickrpulse-home-layout";
+const STORAGE_KEY = "tickrview-home-layout";
 const DEFAULT_ORDER = [
   "pulse",
   "runners",
@@ -43,21 +42,10 @@ function loadLayout() {
 }
 
 export function useHomeLayout() {
-  const { session } = useAuth();
-  const [layout, setLayout] = useState(() =>
-    session ? loadLayout() : DEFAULT_LAYOUT,
-  );
-
-  useEffect(() => {
-    if (session) {
-      setLayout(loadLayout());
-    } else {
-      setLayout(DEFAULT_LAYOUT);
-    }
-  }, [!!session]);
+  const [layout, setLayout] = useState(loadLayout);
 
   const persist = (next) => {
-    if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     return next;
   };
 
@@ -71,7 +59,7 @@ export function useHomeLayout() {
         return persist({ ...prev, order });
       });
     },
-    [session],
+    [],
   );
 
   const moveDown = useCallback(
@@ -84,7 +72,7 @@ export function useHomeLayout() {
         return persist({ ...prev, order });
       });
     },
-    [session],
+    [],
   );
 
   const toggleVisibility = useCallback(
@@ -96,7 +84,7 @@ export function useHomeLayout() {
         return persist({ ...prev, hidden });
       });
     },
-    [session],
+    [],
   );
 
   const reorder = useCallback(
@@ -110,12 +98,12 @@ export function useHomeLayout() {
         return persist({ ...prev, order });
       });
     },
-    [session],
+    [],
   );
 
   const resetLayout = useCallback(() => {
     setLayout(persist(DEFAULT_LAYOUT));
-  }, [session]);
+  }, []);
 
   return {
     order: layout.order,

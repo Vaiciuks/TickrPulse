@@ -1,8 +1,8 @@
-# TickrPulse
+# TickrView
 
 Real-time stock market dashboard with live quotes, interactive charts, heatmaps, AI-powered market digests, smart money tracking, and more.
 
-**Live:** [tickrpulse.up.railway.app](https://tickrpulse.up.railway.app)
+**Live:** [tickrview.up.railway.app](https://tickrview.up.railway.app)
 
 ---
 
@@ -86,7 +86,7 @@ Real-time stock market dashboard with live quotes, interactive charts, heatmaps,
 ## Project Structure
 
 ```
-TickrPulse/
+TickrView/
 ├── public/                  # Static assets, PWA manifest, favicon
 ├── server/
 │   ├── app.js               # Express app setup (middleware, routes)
@@ -125,8 +125,8 @@ TickrPulse/
 ### Installation
 
 ```bash
-git clone https://github.com/Vaiciuks/TickrPulse.git
-cd TickrPulse
+git clone https://github.com/Vaiciuks/TickrView.git
+cd TickrView
 npm install
 ```
 

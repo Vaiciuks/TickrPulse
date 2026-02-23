@@ -1624,7 +1624,7 @@ export default function ExpandedChart({
       ctx.fillStyle = tc.brandedDim;
       ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.textAlign = "right";
-      ctx.fillText("TickrPulse", cropW - 8, cropH + 21);
+      ctx.fillText("TickrView", cropW - 8, cropH + 21);
 
       try {
         const blob = await new Promise((resolve) =>
