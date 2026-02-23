@@ -1,15 +1,15 @@
-import { useState, useMemo } from 'react';
-import { useInsiderTrading } from '../hooks/useInsiderTrading.js';
+import { useState, useMemo } from "react";
+import { useInsiderTrading } from "../hooks/useInsiderTrading.js";
 
 function formatValue(val) {
-  if (!val) return '$0';
+  if (!val) return "$0";
   if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
   if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
   return `$${val.toLocaleString()}`;
 }
 
 function formatQty(qty) {
-  if (!qty) return '0';
+  if (!qty) return "0";
   if (Math.abs(qty) >= 1_000_000) return `${(qty / 1_000_000).toFixed(1)}M`;
   if (Math.abs(qty) >= 1_000) return `${(qty / 1_000).toFixed(1)}K`;
   return qty.toLocaleString();
@@ -17,41 +17,60 @@ function formatQty(qty) {
 
 export default function InsiderTrading({ active, onSelectStock }) {
   const { data, loading } = useInsiderTrading(active);
-  const [sortCol, setSortCol] = useState('value');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortCol, setSortCol] = useState("value");
+  const [sortDir, setSortDir] = useState("desc");
 
   const trades = useMemo(() => {
     const list = data?.trades || [];
     return [...list].sort((a, b) => {
       let aVal, bVal;
       switch (sortCol) {
-        case 'filingDate': aVal = a.filingDate; bVal = b.filingDate; break;
-        case 'symbol': aVal = a.symbol; bVal = b.symbol; break;
-        case 'insiderName': aVal = a.insiderName; bVal = b.insiderName; break;
-        case 'price': aVal = a.price; bVal = b.price; break;
-        case 'qty': aVal = Math.abs(a.qty); bVal = Math.abs(b.qty); break;
-        case 'value': default: aVal = a.value; bVal = b.value; break;
+        case "filingDate":
+          aVal = a.filingDate;
+          bVal = b.filingDate;
+          break;
+        case "symbol":
+          aVal = a.symbol;
+          bVal = b.symbol;
+          break;
+        case "insiderName":
+          aVal = a.insiderName;
+          bVal = b.insiderName;
+          break;
+        case "price":
+          aVal = a.price;
+          bVal = b.price;
+          break;
+        case "qty":
+          aVal = Math.abs(a.qty);
+          bVal = Math.abs(b.qty);
+          break;
+        case "value":
+        default:
+          aVal = a.value;
+          bVal = b.value;
+          break;
       }
-      if (typeof aVal === 'string') {
+      if (typeof aVal === "string") {
         const cmp = aVal.localeCompare(bVal);
-        return sortDir === 'asc' ? cmp : -cmp;
+        return sortDir === "asc" ? cmp : -cmp;
       }
-      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
   }, [data, sortCol, sortDir]);
 
   const handleSort = (col) => {
     if (sortCol === col) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortCol(col);
-      setSortDir('desc');
+      setSortDir("desc");
     }
   };
 
   const sortIcon = (col) => {
-    if (sortCol !== col) return '';
-    return sortDir === 'asc' ? ' \u25B2' : ' \u25BC';
+    if (sortCol !== col) return "";
+    return sortDir === "asc" ? " \u25B2" : " \u25BC";
   };
 
   const handleRowClick = (trade) => {
@@ -82,25 +101,43 @@ export default function InsiderTrading({ active, onSelectStock }) {
       <table className="smartmoney-table">
         <thead>
           <tr>
-            <th onClick={() => handleSort('filingDate')} className={sortCol === 'filingDate' ? 'sorted' : ''}>
-              Date{sortIcon('filingDate')}
+            <th
+              onClick={() => handleSort("filingDate")}
+              className={sortCol === "filingDate" ? "sorted" : ""}
+            >
+              Date{sortIcon("filingDate")}
             </th>
-            <th onClick={() => handleSort('symbol')} className={sortCol === 'symbol' ? 'sorted' : ''}>
-              Symbol{sortIcon('symbol')}
+            <th
+              onClick={() => handleSort("symbol")}
+              className={sortCol === "symbol" ? "sorted" : ""}
+            >
+              Symbol{sortIcon("symbol")}
             </th>
-            <th onClick={() => handleSort('insiderName')} className={sortCol === 'insiderName' ? 'sorted' : ''}>
-              Insider{sortIcon('insiderName')}
+            <th
+              onClick={() => handleSort("insiderName")}
+              className={sortCol === "insiderName" ? "sorted" : ""}
+            >
+              Insider{sortIcon("insiderName")}
             </th>
             <th className="sm-hide-mobile">Title</th>
             <th>Type</th>
-            <th onClick={() => handleSort('price')} className={sortCol === 'price' ? 'sorted' : ''}>
-              Price{sortIcon('price')}
+            <th
+              onClick={() => handleSort("price")}
+              className={sortCol === "price" ? "sorted" : ""}
+            >
+              Price{sortIcon("price")}
             </th>
-            <th onClick={() => handleSort('qty')} className={sortCol === 'qty' ? 'sorted' : ''}>
-              Qty{sortIcon('qty')}
+            <th
+              onClick={() => handleSort("qty")}
+              className={sortCol === "qty" ? "sorted" : ""}
+            >
+              Qty{sortIcon("qty")}
             </th>
-            <th onClick={() => handleSort('value')} className={sortCol === 'value' ? 'sorted' : ''}>
-              Value{sortIcon('value')}
+            <th
+              onClick={() => handleSort("value")}
+              className={sortCol === "value" ? "sorted" : ""}
+            >
+              Value{sortIcon("value")}
             </th>
           </tr>
         </thead>
@@ -108,7 +145,7 @@ export default function InsiderTrading({ active, onSelectStock }) {
           {trades.map((trade, i) => (
             <tr
               key={`${trade.symbol}-${trade.filingDate}-${i}`}
-              className={trade.isBuy ? 'row-buy' : 'row-sell'}
+              className={trade.isBuy ? "row-buy" : "row-sell"}
               onClick={() => handleRowClick(trade)}
             >
               <td className="sm-date">{trade.tradeDate || trade.filingDate}</td>
@@ -116,8 +153,10 @@ export default function InsiderTrading({ active, onSelectStock }) {
               <td className="sm-name">{trade.insiderName}</td>
               <td className="sm-hide-mobile sm-title">{trade.title}</td>
               <td>
-                <span className={`sentiment-badge ${trade.isBuy ? 'bullish' : 'bearish'}`}>
-                  {trade.isBuy ? 'BUY' : 'SELL'}
+                <span
+                  className={`sentiment-badge ${trade.isBuy ? "bullish" : "bearish"}`}
+                >
+                  {trade.isBuy ? "BUY" : "SELL"}
                 </span>
               </td>
               <td>${trade.price.toFixed(2)}</td>

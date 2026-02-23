@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const REFRESH_INTERVAL = 600_000; // 10 minutes
 
@@ -12,7 +12,7 @@ export function useLobbying(active) {
 
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/lobbying');
+        const res = await fetch("/api/lobbying");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (mounted) {
@@ -26,7 +26,10 @@ export function useLobbying(active) {
 
     fetchData();
     const id = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active]);
 
   return { data, loading };

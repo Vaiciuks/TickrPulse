@@ -1,26 +1,40 @@
-import { useState, useMemo } from 'react';
-import { useEconomicCalendar } from '../hooks/useEconomicCalendar.js';
+import { useState, useMemo } from "react";
+import { useEconomicCalendar } from "../hooks/useEconomicCalendar.js";
 
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatTime(dateStr) {
   const d = new Date(dateStr);
   const h = d.getHours();
   const m = d.getMinutes();
-  if (h === 0 && m === 0) return '';
-  const ampm = h >= 12 ? 'PM' : 'AM';
+  if (h === 0 && m === 0) return "";
+  const ampm = h >= 12 ? "PM" : "AM";
   const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
 function isToday(dateStr) {
   const d = new Date(dateStr);
   const now = new Date();
-  return d.getFullYear() === now.getFullYear()
-    && d.getMonth() === now.getMonth()
-    && d.getDate() === now.getDate();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  );
 }
 
 function isPast(dateStr) {
@@ -33,9 +47,9 @@ function formatDateLabel(dateStr) {
 }
 
 function getImpactLabel(importance) {
-  if (importance === 1) return 'high';
-  if (importance === 0) return 'medium';
-  return 'low';
+  if (importance === 1) return "high";
+  if (importance === 0) return "medium";
+  return "low";
 }
 
 function EventRow({ event }) {
@@ -45,9 +59,14 @@ function EventRow({ event }) {
   const hasResult = event.actual != null;
 
   return (
-    <div className={`econ-event${past ? ' econ-event--past' : ''}${hasResult ? ' econ-event--released' : ''}`}>
+    <div
+      className={`econ-event${past ? " econ-event--past" : ""}${hasResult ? " econ-event--released" : ""}`}
+    >
       <div className="econ-event-left">
-        <span className={`econ-impact econ-impact--${impact}`} title={`${impact} impact`} />
+        <span
+          className={`econ-impact econ-impact--${impact}`}
+          title={`${impact} impact`}
+        />
         <div className="econ-event-info">
           <span className="econ-event-title">{event.title}</span>
           {time && <span className="econ-event-time">{time}</span>}
@@ -80,10 +99,13 @@ function EventRow({ event }) {
 function SkeletonLoader() {
   return (
     <div className="econ-skeleton">
-      {[1, 2, 3, 4, 5, 6].map(n => (
+      {[1, 2, 3, 4, 5, 6].map((n) => (
         <div key={n} className="econ-skeleton-row">
           <div className="skeleton-circle" style={{ width: 8, height: 8 }} />
-          <div className="skeleton-line" style={{ width: n % 2 === 0 ? 140 : 180, height: 12 }} />
+          <div
+            className="skeleton-line"
+            style={{ width: n % 2 === 0 ? 140 : 180, height: 12 }}
+          />
           <div className="skeleton-line" style={{ flex: 1, height: 0 }} />
           <div className="skeleton-line" style={{ width: 50, height: 10 }} />
           <div className="skeleton-line" style={{ width: 50, height: 10 }} />
@@ -95,16 +117,20 @@ function SkeletonLoader() {
 
 export default function EconomicCalendar({ active }) {
   const { events, loading, lastUpdated } = useEconomicCalendar(active);
-  const [filter, setFilter] = useState('upcoming'); // 'upcoming' | 'all'
+  const [filter, setFilter] = useState("upcoming"); // 'upcoming' | 'all'
 
   // Group events by date
   const grouped = useMemo(() => {
     const now = new Date();
     let filtered = events;
-    if (filter === 'upcoming') {
+    if (filter === "upcoming") {
       // Show from start of today onward
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      filtered = events.filter(e => new Date(e.date) >= todayStart);
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
+      filtered = events.filter((e) => new Date(e.date) >= todayStart);
     }
 
     const groups = [];
@@ -112,7 +138,7 @@ export default function EconomicCalendar({ active }) {
     let currentGroup = null;
 
     for (const event of filtered) {
-      const dateKey = new Date(event.date).toLocaleDateString('en-CA'); // YYYY-MM-DD
+      const dateKey = new Date(event.date).toLocaleDateString("en-CA"); // YYYY-MM-DD
       if (dateKey !== currentDate) {
         currentDate = dateKey;
         currentGroup = { date: event.date, dateKey, events: [] };
@@ -127,7 +153,7 @@ export default function EconomicCalendar({ active }) {
   // Find the next upcoming event for the "next up" banner
   const nextEvent = useMemo(() => {
     const now = new Date();
-    return events.find(e => new Date(e.date) > now && e.importance === 1);
+    return events.find((e) => new Date(e.date) > now && e.importance === 1);
   }, [events]);
 
   // Count days until next high-impact event (calendar-day based)
@@ -136,10 +162,14 @@ export default function EconomicCalendar({ active }) {
     const now = new Date();
     const eventDate = new Date(nextEvent.date);
     const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+    const eventDay = new Date(
+      eventDate.getFullYear(),
+      eventDate.getMonth(),
+      eventDate.getDate(),
+    );
     const diff = Math.round((eventDay - nowDay) / (1000 * 60 * 60 * 24));
-    if (diff <= 0) return 'Today';
-    if (diff === 1) return 'Tomorrow';
+    if (diff <= 0) return "Today";
+    if (diff === 1) return "Tomorrow";
     return `In ${diff} days`;
   }, [nextEvent]);
 
@@ -153,14 +183,14 @@ export default function EconomicCalendar({ active }) {
         <div className="econ-header-right">
           <div className="econ-filter">
             <button
-              className={`econ-filter-btn${filter === 'upcoming' ? ' active' : ''}`}
-              onClick={() => setFilter('upcoming')}
+              className={`econ-filter-btn${filter === "upcoming" ? " active" : ""}`}
+              onClick={() => setFilter("upcoming")}
             >
               Upcoming
             </button>
             <button
-              className={`econ-filter-btn${filter === 'all' ? ' active' : ''}`}
-              onClick={() => setFilter('all')}
+              className={`econ-filter-btn${filter === "all" ? " active" : ""}`}
+              onClick={() => setFilter("all")}
             >
               All
             </button>
@@ -177,9 +207,15 @@ export default function EconomicCalendar({ active }) {
       )}
 
       <div className="econ-legend">
-        <span className="econ-legend-item"><span className="econ-impact econ-impact--high" /> High Impact</span>
-        <span className="econ-legend-item"><span className="econ-impact econ-impact--medium" /> Medium</span>
-        <span className="econ-legend-item"><span className="econ-impact econ-impact--low" /> Low</span>
+        <span className="econ-legend-item">
+          <span className="econ-impact econ-impact--high" /> High Impact
+        </span>
+        <span className="econ-legend-item">
+          <span className="econ-impact econ-impact--medium" /> Medium
+        </span>
+        <span className="econ-legend-item">
+          <span className="econ-impact econ-impact--low" /> Low
+        </span>
       </div>
 
       {loading ? (
@@ -189,16 +225,22 @@ export default function EconomicCalendar({ active }) {
           {grouped.length === 0 && (
             <div className="econ-empty">No upcoming economic events</div>
           )}
-          {grouped.map(group => (
+          {grouped.map((group) => (
             <div key={group.dateKey} className="econ-day-group">
-              <div className={`econ-day-header${isToday(group.date) ? ' econ-day-header--today' : ''}`}>
+              <div
+                className={`econ-day-header${isToday(group.date) ? " econ-day-header--today" : ""}`}
+              >
                 <span className="econ-day-dot" />
-                <span className="econ-day-label">{formatDateLabel(group.date)}</span>
-                {isToday(group.date) && <span className="econ-today-badge">Today</span>}
+                <span className="econ-day-label">
+                  {formatDateLabel(group.date)}
+                </span>
+                {isToday(group.date) && (
+                  <span className="econ-today-badge">Today</span>
+                )}
                 <span className="econ-day-count">{group.events.length}</span>
               </div>
               <div className="econ-day-events">
-                {group.events.map(event => (
+                {group.events.map((event) => (
                   <EventRow key={event.id} event={event} />
                 ))}
               </div>
@@ -209,7 +251,11 @@ export default function EconomicCalendar({ active }) {
 
       {lastUpdated && (
         <div className="econ-footer">
-          Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          Updated{" "}
+          {lastUpdated.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </div>
       )}
     </main>

@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import EarningsCalendar from './EarningsCalendar.jsx';
-import EarningsLookup from './EarningsLookup.jsx';
+import { useState } from "react";
+import EarningsCalendar from "./EarningsCalendar.jsx";
+import EarningsLookup from "./EarningsLookup.jsx";
 
 const SUB_TABS = [
-  { key: 'calendar', label: 'Calendar' },
-  { key: 'lookup', label: 'Lookup' },
+  { key: "calendar", label: "Calendar" },
+  { key: "lookup", label: "Lookup" },
 ];
 
 const SOURCE_NOTES = {
-  calendar: 'Nasdaq earnings calendar — updated daily',
-  lookup: 'Nasdaq, Yahoo Finance & Finnhub — EPS, revenue & analyst consensus',
+  calendar: "Nasdaq earnings calendar — updated daily",
+  lookup: "Nasdaq, Yahoo Finance & Finnhub — EPS, revenue & analyst consensus",
 };
 
 export default function Earnings({ active, onSelectStock }) {
-  const [subTab, setSubTab] = useState('calendar');
+  const [subTab, setSubTab] = useState("calendar");
 
   return (
     <main className="earnings-main">
@@ -21,10 +21,10 @@ export default function Earnings({ active, onSelectStock }) {
         <div className="smartmoney-header-left">
           <h2 className="smartmoney-title">Earnings</h2>
           <div className="smartmoney-tab-toggle">
-            {SUB_TABS.map(tab => (
+            {SUB_TABS.map((tab) => (
               <button
                 key={tab.key}
-                className={`smartmoney-tab-btn${subTab === tab.key ? ' active' : ''}`}
+                className={`smartmoney-tab-btn${subTab === tab.key ? " active" : ""}`}
                 onClick={() => setSubTab(tab.key)}
               >
                 {tab.label}
@@ -35,11 +35,17 @@ export default function Earnings({ active, onSelectStock }) {
         </div>
       </div>
 
-      {subTab === 'calendar' && (
-        <EarningsCalendar active={active && subTab === 'calendar'} onSelectStock={onSelectStock} />
+      {subTab === "calendar" && (
+        <EarningsCalendar
+          active={active && subTab === "calendar"}
+          onSelectStock={onSelectStock}
+        />
       )}
-      {subTab === 'lookup' && (
-        <EarningsLookup active={active && subTab === 'lookup'} onSelectStock={onSelectStock} />
+      {subTab === "lookup" && (
+        <EarningsLookup
+          active={active && subTab === "lookup"}
+          onSelectStock={onSelectStock}
+        />
       )}
     </main>
   );

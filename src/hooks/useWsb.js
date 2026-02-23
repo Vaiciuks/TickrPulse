@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const REFRESH_INTERVAL = 600_000; // 10 minutes
 
-export function useWsb(active, filter = 'all-stocks') {
+export function useWsb(active, filter = "all-stocks") {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -14,7 +14,9 @@ export function useWsb(active, filter = 'all-stocks') {
 
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/wsb?filter=${encodeURIComponent(filter)}`);
+        const res = await fetch(
+          `/api/wsb?filter=${encodeURIComponent(filter)}`,
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (mounted) {
@@ -29,7 +31,10 @@ export function useWsb(active, filter = 'all-stocks') {
 
     fetchData();
     const id = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active, filter]);
 
   return { data, loading, lastUpdated };

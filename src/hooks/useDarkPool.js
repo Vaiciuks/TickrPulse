@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const REFRESH_INTERVAL = 300_000; // 5 minutes
 
@@ -12,7 +12,7 @@ export function useDarkPool(active) {
 
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/dark-pool');
+        const res = await fetch("/api/dark-pool");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (mounted) {
@@ -26,7 +26,10 @@ export function useDarkPool(active) {
 
     fetchData();
     const id = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active]);
 
   return { data, loading };

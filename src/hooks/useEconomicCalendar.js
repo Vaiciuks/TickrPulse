@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const REFRESH_INTERVAL = 300_000; // 5 minutes
 
@@ -13,7 +13,7 @@ export function useEconomicCalendar(active) {
 
     const fetchEvents = async () => {
       try {
-        const res = await fetch('/api/economic-calendar');
+        const res = await fetch("/api/economic-calendar");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (mounted) {
@@ -28,7 +28,10 @@ export function useEconomicCalendar(active) {
 
     fetchEvents();
     const id = setInterval(fetchEvents, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active]);
 
   return { events, loading, lastUpdated };

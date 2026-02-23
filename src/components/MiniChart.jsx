@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import { useEffect, useRef } from "react";
+import { createChart, ColorType } from "lightweight-charts";
 
 export default function MiniChart({ symbol, isPositive = true, data }) {
   const containerRef = useRef(null);
@@ -12,8 +12,8 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
       width: containerRef.current.clientWidth,
       height: 120,
       layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#888',
+        background: { type: ColorType.Solid, color: "transparent" },
+        textColor: "#888",
       },
       grid: {
         vertLines: { visible: false },
@@ -30,40 +30,50 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
     });
 
     const series = chart.addAreaSeries({
-      lineColor: isPositive ? '#00d66b' : '#ff2952',
-      topColor: isPositive ? 'rgba(0, 214, 107, 0.35)' : 'rgba(255, 41, 82, 0.35)',
-      bottomColor: isPositive ? 'rgba(0, 214, 107, 0.02)' : 'rgba(255, 41, 82, 0.02)',
+      lineColor: isPositive ? "#00d66b" : "#ff2952",
+      topColor: isPositive
+        ? "rgba(0, 214, 107, 0.35)"
+        : "rgba(255, 41, 82, 0.35)",
+      bottomColor: isPositive
+        ? "rgba(0, 214, 107, 0.02)"
+        : "rgba(255, 41, 82, 0.02)",
       lineWidth: 2,
       crosshairMarkerVisible: false,
     });
 
-    const lineData = data.map(d => ({ time: d.time, value: d.close }));
+    const lineData = data.map((d) => ({ time: d.time, value: d.close }));
     series.setData(lineData);
 
     // Mini volume bars at the bottom
     const volSeries = chart.addHistogramSeries({
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'vol',
+      priceFormat: { type: "volume" },
+      priceScaleId: "vol",
     });
-    chart.priceScale('vol').applyOptions({
+    chart.priceScale("vol").applyOptions({
       scaleMargins: { top: 0.85, bottom: 0 },
       drawTicks: false,
       borderVisible: false,
     });
-    volSeries.setData(data.map(d => ({
-      time: d.time,
-      value: d.volume || 0,
-      color: d.close >= d.open ? 'rgba(0,214,107,0.18)' : 'rgba(255,41,82,0.18)',
-    })));
+    volSeries.setData(
+      data.map((d) => ({
+        time: d.time,
+        value: d.volume || 0,
+        color:
+          d.close >= d.open ? "rgba(0,214,107,0.18)" : "rgba(255,41,82,0.18)",
+      })),
+    );
 
     chart.timeScale().fitContent();
 
     chartRef.current = chart;
 
     // Hide TradingView watermark on mini charts
-    const watermark = containerRef.current.querySelector('a[href*="tradingview"]');
+    const watermark = containerRef.current.querySelector(
+      'a[href*="tradingview"]',
+    );
     if (watermark) {
-      watermark.style.cssText = 'opacity:0 !important; pointer-events:none !important;';
+      watermark.style.cssText =
+        "opacity:0 !important; pointer-events:none !important;";
     }
 
     const handleResize = () => {
@@ -71,17 +81,20 @@ export default function MiniChart({ symbol, isPositive = true, data }) {
         chart.applyOptions({ width: containerRef.current.clientWidth });
       }
     };
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       chart.remove();
       chartRef.current = null;
     };
   }, [data]);
 
   return (
-    <div className={`mini-chart ${isPositive ? 'mini-chart--up' : 'mini-chart--down'}`} ref={containerRef}>
+    <div
+      className={`mini-chart ${isPositive ? "mini-chart--up" : "mini-chart--down"}`}
+      ref={containerRef}
+    >
       {!data && <div className="mini-chart-loading" />}
     </div>
   );

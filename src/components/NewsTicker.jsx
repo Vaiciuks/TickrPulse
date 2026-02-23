@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 export default function NewsTicker() {
   const [articles, setArticles] = useState([]);
@@ -9,7 +9,7 @@ export default function NewsTicker() {
 
     const fetchNews = async () => {
       try {
-        const res = await fetch('/api/market-news');
+        const res = await fetch("/api/market-news");
         if (!res.ok) return;
         const data = await res.json();
         if (mounted) setArticles(data.articles || []);
@@ -20,7 +20,10 @@ export default function NewsTicker() {
 
     fetchNews();
     const id = setInterval(fetchNews, 120_000); // refresh every 2 min
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, []);
 
   if (articles.length === 0) return null;

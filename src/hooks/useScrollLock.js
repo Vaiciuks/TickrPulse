@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 /**
  * iOS Safari ignores `overflow: hidden` on body for scroll prevention.
@@ -12,18 +12,18 @@ export function useScrollLock(active) {
     if (!active) return;
 
     scrollYRef.current = window.scrollY;
-    document.body.style.position = 'fixed';
+    document.body.style.position = "fixed";
     document.body.style.top = `-${scrollYRef.current}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.overflow = 'hidden';
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overflow = "";
       window.scrollTo(0, scrollYRef.current);
     };
   }, [active]);
@@ -32,19 +32,19 @@ export function useScrollLock(active) {
 /** Imperative lock/unlock for non-hook contexts (e.g. drag handlers) */
 export function lockScroll() {
   const y = window.scrollY;
-  document.body.style.position = 'fixed';
+  document.body.style.position = "fixed";
   document.body.style.top = `-${y}px`;
-  document.body.style.left = '0';
-  document.body.style.right = '0';
-  document.body.style.overflow = 'hidden';
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.overflow = "hidden";
   return y;
 }
 
 export function unlockScroll(scrollY) {
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.left = '';
-  document.body.style.right = '';
-  document.body.style.overflow = '';
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.overflow = "";
   window.scrollTo(0, scrollY);
 }

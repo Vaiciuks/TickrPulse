@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const REFRESH_INTERVAL = 300_000; // 5 minutes
 
@@ -15,7 +15,7 @@ export function useInsiderTrading(active, symbol = null) {
       try {
         const endpoint = symbol
           ? `/api/insider-trading/${encodeURIComponent(symbol)}`
-          : '/api/insider-trading';
+          : "/api/insider-trading";
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
@@ -31,7 +31,10 @@ export function useInsiderTrading(active, symbol = null) {
 
     fetchData();
     const id = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active, symbol]);
 
   return { data, loading, lastUpdated };

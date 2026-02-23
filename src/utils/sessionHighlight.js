@@ -10,27 +10,27 @@
  *   Overnight:    8:00 PM – 4:00 AM (next day)
  */
 
-const etFormatter = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/New_York',
-  hour: 'numeric',
-  minute: 'numeric',
+const etFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  hour: "numeric",
+  minute: "numeric",
   hour12: false,
 });
 
-const etDateFormatter = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/New_York',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: 'numeric',
-  minute: 'numeric',
+const etDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "numeric",
+  minute: "numeric",
   hour12: false,
 });
 
 function getETHourDecimal(unixSeconds) {
   const parts = etFormatter.formatToParts(new Date(unixSeconds * 1000));
-  const h = parseInt(parts.find(p => p.type === 'hour').value);
-  const m = parseInt(parts.find(p => p.type === 'minute').value);
+  const h = parseInt(parts.find((p) => p.type === "hour").value);
+  const m = parseInt(parts.find((p) => p.type === "minute").value);
   return h + m / 60;
 }
 
@@ -40,17 +40,17 @@ function getETHourDecimal(unixSeconds) {
  */
 function getSessionType(unixSeconds) {
   const h = getETHourDecimal(unixSeconds);
-  if (h >= 9.5 && h < 16) return 'regular';
-  if (h >= 4 && h < 9.5) return 'premarket';
-  if (h >= 16 && h < 20) return 'afterhours';
-  return 'overnight'; // 20:00 – 4:00
+  if (h >= 9.5 && h < 16) return "regular";
+  if (h >= 4 && h < 9.5) return "premarket";
+  if (h >= 16 && h < 20) return "afterhours";
+  return "overnight"; // 20:00 – 4:00
 }
 
 // Zone fill colors per session type
 const ZONE_COLORS = {
-  premarket:  'rgba(30, 60, 160, 0.15)',   // blue tint
-  afterhours: 'rgba(30, 60, 160, 0.15)',   // blue tint (same as premarket)
-  overnight:  'rgba(140, 60, 220, 0.35)',  // bold purple
+  premarket: "rgba(30, 60, 160, 0.15)", // blue tint
+  afterhours: "rgba(30, 60, 160, 0.15)", // blue tint (same as premarket)
+  overnight: "rgba(140, 60, 220, 0.35)", // bold purple
 };
 
 /**
@@ -61,8 +61,8 @@ const ZONE_COLORS = {
  */
 export function projectForwardTimestamps(lastTime, intervalSeconds) {
   const parts = etDateFormatter.formatToParts(new Date(lastTime * 1000));
-  const h = parseInt(parts.find(p => p.type === 'hour').value);
-  const m = parseInt(parts.find(p => p.type === 'minute').value);
+  const h = parseInt(parts.find((p) => p.type === "hour").value);
+  const m = parseInt(parts.find((p) => p.type === "minute").value);
   const currentET = h + m / 60;
 
   const targetET = 20;
@@ -94,7 +94,7 @@ function analyzeSessionData(data) {
   let zoneType = null;
   let prevType = getSessionType(data[0].time);
 
-  if (prevType !== 'regular') {
+  if (prevType !== "regular") {
     zoneStart = data[0].time;
     zoneType = prevType;
   }
@@ -105,38 +105,62 @@ function analyzeSessionData(data) {
     // Detect overnight gap: data jumps from afterhours to premarket (next day)
     // with a large time gap (>4 hours means overnight happened between points)
     const timeDiff = data[i].time - data[i - 1].time;
-    const isOvernightGap = timeDiff > 4 * 3600 &&
-      (prevType === 'afterhours' && curType === 'premarket');
+    const isOvernightGap =
+      timeDiff > 4 * 3600 &&
+      prevType === "afterhours" &&
+      curType === "premarket";
 
     if (isOvernightGap) {
       // Close current afterhours zone
       if (zoneStart !== null) {
-        zones.push({ startTime: zoneStart, endTime: data[i - 1].time, sessionType: zoneType });
+        zones.push({
+          startTime: zoneStart,
+          endTime: data[i - 1].time,
+          sessionType: zoneType,
+        });
       }
       // Insert overnight zone spanning the gap
-      zones.push({ startTime: data[i - 1].time, endTime: data[i].time, sessionType: 'overnight' });
-      boundaries.push({ before: data[i - 1].time, after: data[i].time, type: 'transition' });
+      zones.push({
+        startTime: data[i - 1].time,
+        endTime: data[i].time,
+        sessionType: "overnight",
+      });
+      boundaries.push({
+        before: data[i - 1].time,
+        after: data[i].time,
+        type: "transition",
+      });
       // Start new premarket zone
       zoneStart = data[i].time;
       zoneType = curType;
     } else if (curType !== prevType) {
       // Determine boundary icon type
       let bType;
-      if (prevType === 'regular') bType = 'close';       // leaving regular → moon
-      else if (curType === 'regular') bType = 'open';     // entering regular → sun
-      else bType = 'transition';                          // e.g. afterhours → overnight
+      if (prevType === "regular")
+        bType = "close"; // leaving regular → moon
+      else if (curType === "regular")
+        bType = "open"; // entering regular → sun
+      else bType = "transition"; // e.g. afterhours → overnight
 
-      boundaries.push({ before: data[i - 1].time, after: data[i].time, type: bType });
+      boundaries.push({
+        before: data[i - 1].time,
+        after: data[i].time,
+        type: bType,
+      });
 
       // Close current zone if one is open
       if (zoneStart !== null) {
-        zones.push({ startTime: zoneStart, endTime: data[i - 1].time, sessionType: zoneType });
+        zones.push({
+          startTime: zoneStart,
+          endTime: data[i - 1].time,
+          sessionType: zoneType,
+        });
         zoneStart = null;
         zoneType = null;
       }
 
       // Open new zone if entering non-regular
-      if (curType !== 'regular') {
+      if (curType !== "regular") {
         zoneStart = data[i].time;
         zoneType = curType;
       }
@@ -145,7 +169,11 @@ function analyzeSessionData(data) {
   }
 
   if (zoneStart !== null) {
-    zones.push({ startTime: zoneStart, endTime: data[data.length - 1].time, sessionType: zoneType });
+    zones.push({
+      startTime: zoneStart,
+      endTime: data[data.length - 1].time,
+      sessionType: zoneType,
+    });
   }
 
   return { zones, boundaries };
@@ -154,19 +182,32 @@ function analyzeSessionData(data) {
 /* ── lightweight-charts series primitive ─────────────────────────── */
 
 class SessionPaneView {
-  constructor(source) { this._source = source; }
-  zOrder() { return 'bottom'; }
-  renderer() { return new SessionRenderer(this._source); }
+  constructor(source) {
+    this._source = source;
+  }
+  zOrder() {
+    return "bottom";
+  }
+  renderer() {
+    return new SessionRenderer(this._source);
+  }
 }
 
 class SessionRenderer {
-  constructor(source) { this._source = source; }
+  constructor(source) {
+    this._source = source;
+  }
 
   draw(target) {
-    const { _zones: zones, _boundaries: boundaries, _chart: chart, _barHalfWidth: halfBar } = this._source;
+    const {
+      _zones: zones,
+      _boundaries: boundaries,
+      _chart: chart,
+      _barHalfWidth: halfBar,
+    } = this._source;
     if ((!zones.length && !boundaries.length) || !chart) return;
 
-    target.useBitmapCoordinateSpace(scope => {
+    target.useBitmapCoordinateSpace((scope) => {
       const ctx = scope.context;
       const ts = chart.timeScale();
       const hpr = scope.horizontalPixelRatio;
@@ -186,7 +227,7 @@ class SessionRenderer {
 
       // 2. Dashed boundary lines at session transitions
       ctx.save();
-      ctx.strokeStyle = 'rgba(100, 140, 220, 0.30)';
+      ctx.strokeStyle = "rgba(100, 140, 220, 0.30)";
       ctx.lineWidth = Math.max(1, Math.round(hpr));
       ctx.setLineDash([4 * hpr, 3 * hpr]);
 
@@ -207,16 +248,16 @@ class SessionRenderer {
       const labelSize = Math.round(10 * hpr);
       ctx.save();
       ctx.font = `${labelSize}px sans-serif`;
-      ctx.fillStyle = 'rgba(180, 140, 255, 0.50)';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.fillStyle = "rgba(180, 140, 255, 0.50)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       for (const zone of zones) {
-        if (zone.sessionType !== 'overnight') continue;
+        if (zone.sessionType !== "overnight") continue;
         const x1 = ts.timeToCoordinate(zone.startTime);
         const x2 = ts.timeToCoordinate(zone.endTime);
         if (x1 === null || x2 === null) continue;
         const cx = Math.round(((x1 + x2) / 2) * hpr);
-        ctx.fillText('Overnight', cx, Math.round(h / 2));
+        ctx.fillText("Overnight", cx, Math.round(h / 2));
       }
       ctx.restore();
 
@@ -224,21 +265,21 @@ class SessionRenderer {
       const iconSize = Math.round(14 * hpr);
       const iconY = h - Math.round(22 * hpr);
       const iconOffset = Math.round(12 * hpr);
-      ctx.textBaseline = 'middle';
+      ctx.textBaseline = "middle";
       ctx.font = `${iconSize}px sans-serif`;
 
       for (const b of boundaries) {
-        if (b.type === 'transition') continue; // no icon for afterhours→overnight
+        if (b.type === "transition") continue; // no icon for afterhours→overnight
         const xBefore = ts.timeToCoordinate(b.before);
         const xAfter = ts.timeToCoordinate(b.after);
         if (xBefore === null || xAfter === null) continue;
         const bx = Math.round(((xBefore + xAfter) / 2) * hpr);
-        if (b.type === 'close') {
-          ctx.textAlign = 'left';
-          ctx.fillText('\u{1F319}', bx + iconOffset, iconY);
+        if (b.type === "close") {
+          ctx.textAlign = "left";
+          ctx.fillText("\u{1F319}", bx + iconOffset, iconY);
         } else {
-          ctx.textAlign = 'right';
-          ctx.fillText('\u{2600}\uFE0F', bx - iconOffset, iconY);
+          ctx.textAlign = "right";
+          ctx.fillText("\u{2600}\uFE0F", bx - iconOffset, iconY);
         }
       }
     });

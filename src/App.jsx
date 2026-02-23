@@ -1,78 +1,78 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useStocks } from './hooks/useStocks.js';
-import { useBatchChartData } from './hooks/useBatchChartData.js';
-import { useNewsData } from './hooks/useNewsData.js';
-import { useMediaQuery } from './hooks/useMediaQuery.js';
-import { useFavorites } from './hooks/useFavorites.js';
-import { useAlerts } from './hooks/useAlerts.js';
-import { useStockNotes } from './hooks/useStockNotes.js';
-import { useTheme } from './hooks/useTheme.js';
-import { useAuth } from './contexts/AuthContext.jsx';
-import { formatRelativeTime } from './utils/formatters.js';
-import Header from './components/Header.jsx';
-import GridDropdown from './components/GridDropdown.jsx';
-import StockCard from './components/StockCard.jsx';
-import ExpandedChart from './components/ExpandedChart.jsx';
-import TickerSidebar from './components/TickerSidebar.jsx';
-import LoadingState from './components/LoadingState.jsx';
-import EmptyState from './components/EmptyState.jsx';
-import Heatmap from './components/Heatmap.jsx';
-import NewsFeed from './components/NewsFeed.jsx';
-import Earnings from './components/Earnings.jsx';
-import EconomicCalendar from './components/EconomicCalendar.jsx';
-import ExtendedHoursMovers from './components/ExtendedHoursMovers.jsx';
-import Home from './components/Home.jsx';
-import Screener from './components/Screener.jsx';
-import FuturesIndices from './components/FuturesIndices.jsx';
-import FavoritesGrid from './components/FavoritesGrid.jsx';
-import SmartMoney from './components/SmartMoney.jsx';
-import Portfolio from './components/Portfolio.jsx';
-import Footer from './components/Footer.jsx';
-import { usePortfolio } from './hooks/usePortfolio.js';
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useStocks } from "./hooks/useStocks.js";
+import { useBatchChartData } from "./hooks/useBatchChartData.js";
+import { useNewsData } from "./hooks/useNewsData.js";
+import { useMediaQuery } from "./hooks/useMediaQuery.js";
+import { useFavorites } from "./hooks/useFavorites.js";
+import { useAlerts } from "./hooks/useAlerts.js";
+import { useStockNotes } from "./hooks/useStockNotes.js";
+import { useTheme } from "./hooks/useTheme.js";
+import { useAuth } from "./contexts/AuthContext.jsx";
+import { formatRelativeTime } from "./utils/formatters.js";
+import Header from "./components/Header.jsx";
+import GridDropdown from "./components/GridDropdown.jsx";
+import StockCard from "./components/StockCard.jsx";
+import ExpandedChart from "./components/ExpandedChart.jsx";
+import TickerSidebar from "./components/TickerSidebar.jsx";
+import LoadingState from "./components/LoadingState.jsx";
+import EmptyState from "./components/EmptyState.jsx";
+import Heatmap from "./components/Heatmap.jsx";
+import NewsFeed from "./components/NewsFeed.jsx";
+import Earnings from "./components/Earnings.jsx";
+import EconomicCalendar from "./components/EconomicCalendar.jsx";
+import ExtendedHoursMovers from "./components/ExtendedHoursMovers.jsx";
+import Home from "./components/Home.jsx";
+import Screener from "./components/Screener.jsx";
+import FuturesIndices from "./components/FuturesIndices.jsx";
+import FavoritesGrid from "./components/FavoritesGrid.jsx";
+import SmartMoney from "./components/SmartMoney.jsx";
+import Portfolio from "./components/Portfolio.jsx";
+import Footer from "./components/Footer.jsx";
+import { usePortfolio } from "./hooks/usePortfolio.js";
 
 const TABS = [
-  { key: 'home', label: 'Home' },
-  { key: 'gainers', label: 'Top Runners', endpoint: '/api/gainers' },
-  { key: 'losers', label: 'Top Losers', endpoint: '/api/losers' },
-  { key: 'movers', label: 'Pre/After' },
-  { key: 'trending', label: 'Trending', endpoint: '/api/trending' },
-  { key: 'favorites', label: 'Favorites' },
-  { key: 'futures', label: 'Futures' },
-  { key: 'crypto', label: 'Crypto', endpoint: '/api/crypto' },
-  { key: 'screener', label: 'Screener' },
-  { key: 'heatmap', label: 'Heatmap' },
-  { key: 'news', label: 'News' },
-  { key: 'earnings', label: 'Earnings' },
-  { key: 'economy', label: 'Economy' },
-  { key: 'smartmoney', label: 'Smart Money' },
+  { key: "home", label: "Home" },
+  { key: "gainers", label: "Top Runners", endpoint: "/api/gainers" },
+  { key: "losers", label: "Top Losers", endpoint: "/api/losers" },
+  { key: "movers", label: "Pre/After" },
+  { key: "trending", label: "Trending", endpoint: "/api/trending" },
+  { key: "favorites", label: "Favorites" },
+  { key: "futures", label: "Futures" },
+  { key: "crypto", label: "Crypto", endpoint: "/api/crypto" },
+  { key: "screener", label: "Screener" },
+  { key: "heatmap", label: "Heatmap" },
+  { key: "news", label: "News" },
+  { key: "earnings", label: "Earnings" },
+  { key: "economy", label: "Economy" },
+  { key: "smartmoney", label: "Smart Money" },
 ];
 
-const VALID_TABS = new Set([...TABS.map(t => t.key), 'portfolio']);
+const VALID_TABS = new Set([...TABS.map((t) => t.key), "portfolio"]);
 
 export default function App() {
   const { session, isPremium } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState("home");
   const [expandedStock, setExpandedStock] = useState(null);
   const [gridStocks, setGridStocks] = useState([]);
   const [gridMinimized, setGridMinimized] = useState(false);
   const [focusedIdx, setFocusedIdx] = useState(-1);
   const [upgradePrompt, setUpgradePrompt] = useState(null);
   const skipPushRef = useRef(false);
-  const isMobile = useMediaQuery('(max-width: 1024px)');
+  const isMobile = useMediaQuery("(max-width: 1024px)");
 
   // Sidebar state — only persisted for logged-in users
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     if (session) {
-      const saved = localStorage.getItem('stock-scanner-sidebar');
-      return saved !== null ? saved === 'true' : !isMobile;
+      const saved = localStorage.getItem("stock-scanner-sidebar");
+      return saved !== null ? saved === "true" : !isMobile;
     }
     return false;
   });
   const toggleSidebar = useCallback(() => {
-    setSidebarOpen(prev => {
+    setSidebarOpen((prev) => {
       const next = !prev;
-      if (session) localStorage.setItem('stock-scanner-sidebar', String(next));
+      if (session) localStorage.setItem("stock-scanner-sidebar", String(next));
       return next;
     });
   }, [session]);
@@ -80,69 +80,137 @@ export default function App() {
   // Recently viewed stocks — only persisted for logged-in users
   const [recentStocks, setRecentStocks] = useState(() => {
     if (session) {
-      try { return JSON.parse(localStorage.getItem('stock-scanner-recent') || '[]'); }
-      catch { return []; }
+      try {
+        return JSON.parse(localStorage.getItem("stock-scanner-recent") || "[]");
+      } catch {
+        return [];
+      }
     }
     return [];
   });
 
-  const addRecent = useCallback((stock) => {
-    if (!stock?.symbol) return;
-    setRecentStocks(prev => {
-      const filtered = prev.filter(s => s.symbol !== stock.symbol);
-      const next = [stock, ...filtered].slice(0, 15);
-      if (session) localStorage.setItem('stock-scanner-recent', JSON.stringify(next));
-      return next;
-    });
-  }, [session]);
-
-  // All hooks load initial data; only the active tab polls individual quotes
-  const gainersData = useStocks('/api/gainers', activeTab === 'gainers' || activeTab === 'home');
-  const losersData = useStocks('/api/losers', activeTab === 'losers' || activeTab === 'home');
-  const trendingData = useStocks('/api/trending', activeTab === 'trending' || activeTab === 'home');
-  const futuresData = useStocks('/api/futures', activeTab === 'home');
-  const cryptoData = useStocks('/api/crypto', activeTab === 'crypto' || activeTab === 'home');
-  const tabData = { gainers: gainersData, losers: losersData, trending: trendingData, crypto: cryptoData };
-  const isHome = activeTab === 'home';
-  const isHeatmap = activeTab === 'heatmap';
-  const isNews = activeTab === 'news';
-  const isEarnings = activeTab === 'earnings';
-  const isEconomy = activeTab === 'economy';
-  const isMovers = activeTab === 'movers';
-  const isScreener = activeTab === 'screener';
-  const isFutures = activeTab === 'futures';
-  const isFavorites = activeTab === 'favorites';
-  const isSmartMoney = activeTab === 'smartmoney';
-  const isPortfolio = activeTab === 'portfolio';
-  const isSpecialTab = isHome || isHeatmap || isNews || isEarnings || isEconomy || isMovers || isScreener || isFutures || isFavorites || isSmartMoney || isPortfolio;
-  const { stocks, loading, error, lastUpdated } = isSpecialTab
-    ? { stocks: [], loading: false, error: null, lastUpdated: gainersData.lastUpdated }
-    : tabData[activeTab];
-
-  const { favorites, toggleFavorite, isFavorite, reorderFavorites } = useFavorites(
-    gainersData.stocks, losersData.stocks, trendingData.stocks, futuresData.stocks, cryptoData.stocks, session
+  const addRecent = useCallback(
+    (stock) => {
+      if (!stock?.symbol) return;
+      setRecentStocks((prev) => {
+        const filtered = prev.filter((s) => s.symbol !== stock.symbol);
+        const next = [stock, ...filtered].slice(0, 15);
+        if (session)
+          localStorage.setItem("stock-scanner-recent", JSON.stringify(next));
+        return next;
+      });
+    },
+    [session],
   );
 
+  // All hooks load initial data; only the active tab polls individual quotes
+  const gainersData = useStocks(
+    "/api/gainers",
+    activeTab === "gainers" || activeTab === "home",
+  );
+  const losersData = useStocks(
+    "/api/losers",
+    activeTab === "losers" || activeTab === "home",
+  );
+  const trendingData = useStocks(
+    "/api/trending",
+    activeTab === "trending" || activeTab === "home",
+  );
+  const futuresData = useStocks("/api/futures", activeTab === "home");
+  const cryptoData = useStocks(
+    "/api/crypto",
+    activeTab === "crypto" || activeTab === "home",
+  );
+  const tabData = {
+    gainers: gainersData,
+    losers: losersData,
+    trending: trendingData,
+    crypto: cryptoData,
+  };
+  const isHome = activeTab === "home";
+  const isHeatmap = activeTab === "heatmap";
+  const isNews = activeTab === "news";
+  const isEarnings = activeTab === "earnings";
+  const isEconomy = activeTab === "economy";
+  const isMovers = activeTab === "movers";
+  const isScreener = activeTab === "screener";
+  const isFutures = activeTab === "futures";
+  const isFavorites = activeTab === "favorites";
+  const isSmartMoney = activeTab === "smartmoney";
+  const isPortfolio = activeTab === "portfolio";
+  const isSpecialTab =
+    isHome ||
+    isHeatmap ||
+    isNews ||
+    isEarnings ||
+    isEconomy ||
+    isMovers ||
+    isScreener ||
+    isFutures ||
+    isFavorites ||
+    isSmartMoney ||
+    isPortfolio;
+  const { stocks, loading, error, lastUpdated } = isSpecialTab
+    ? {
+        stocks: [],
+        loading: false,
+        error: null,
+        lastUpdated: gainersData.lastUpdated,
+      }
+    : tabData[activeTab];
+
+  const { favorites, toggleFavorite, isFavorite, reorderFavorites } =
+    useFavorites(
+      gainersData.stocks,
+      losersData.stocks,
+      trendingData.stocks,
+      futuresData.stocks,
+      cryptoData.stocks,
+      session,
+    );
+
   // Price alerts
-  const { alerts, addAlert, removeAlert, toggleAlert, getAlerts, checkAlerts, alertCount } = useAlerts(session, isPremium);
+  const {
+    alerts,
+    addAlert,
+    removeAlert,
+    toggleAlert,
+    getAlerts,
+    checkAlerts,
+    alertCount,
+  } = useAlerts(session, isPremium);
 
   // Stock notes
-  const { notes: stockNotes, setNote: setStockNote, getNote: getStockNote, hasNote: hasStockNote } = useStockNotes();
+  const {
+    notes: stockNotes,
+    setNote: setStockNote,
+    getNote: getStockNote,
+    hasNote: hasStockNote,
+  } = useStockNotes();
 
   // Portfolio
   const {
-    holdings: portfolioHoldings, positions: portfolioPositions,
-    addPosition, removePosition, editPosition,
-    totalValue: pfTotalValue, totalCost: pfTotalCost,
-    totalPL: pfTotalPL, totalPLPercent: pfTotalPLPercent,
-    dayChange: pfDayChange, dayChangePercent: pfDayChangePercent,
+    holdings: portfolioHoldings,
+    positions: portfolioPositions,
+    addPosition,
+    removePosition,
+    editPosition,
+    totalValue: pfTotalValue,
+    totalCost: pfTotalCost,
+    totalPL: pfTotalPL,
+    totalPLPercent: pfTotalPLPercent,
+    dayChange: pfDayChange,
+    dayChangePercent: pfDayChangePercent,
   } = usePortfolio();
 
   // Check alerts across ALL data sources (not just active tab)
   useEffect(() => {
     const allStocks = [
-      ...gainersData.stocks, ...losersData.stocks, ...trendingData.stocks,
-      ...futuresData.stocks, ...cryptoData.stocks,
+      ...gainersData.stocks,
+      ...losersData.stocks,
+      ...trendingData.stocks,
+      ...futuresData.stocks,
+      ...cryptoData.stocks,
     ];
     const seen = new Set();
     for (const s of allStocks) {
@@ -151,19 +219,32 @@ export default function App() {
         checkAlerts(s.symbol, s.price);
       }
     }
-  }, [gainersData.stocks, losersData.stocks, trendingData.stocks,
-      futuresData.stocks, cryptoData.stocks, checkAlerts]);
+  }, [
+    gainersData.stocks,
+    losersData.stocks,
+    trendingData.stocks,
+    futuresData.stocks,
+    cryptoData.stocks,
+    checkAlerts,
+  ]);
 
   // Batch-fetch all mini chart data in one request instead of per-card
   const allSymbols = useMemo(() => {
-    const g = gainersData.stocks.map(s => s.symbol);
-    const l = losersData.stocks.map(s => s.symbol);
-    const t = trendingData.stocks.map(s => s.symbol);
-    const f = futuresData.stocks.map(s => s.symbol);
-    const c = cryptoData.stocks.map(s => s.symbol);
-    const fav = favorites.map(s => s.symbol);
+    const g = gainersData.stocks.map((s) => s.symbol);
+    const l = losersData.stocks.map((s) => s.symbol);
+    const t = trendingData.stocks.map((s) => s.symbol);
+    const f = futuresData.stocks.map((s) => s.symbol);
+    const c = cryptoData.stocks.map((s) => s.symbol);
+    const fav = favorites.map((s) => s.symbol);
     return [...new Set([...g, ...l, ...t, ...f, ...c, ...fav])];
-  }, [gainersData.stocks, losersData.stocks, trendingData.stocks, futuresData.stocks, cryptoData.stocks, favorites]);
+  }, [
+    gainersData.stocks,
+    losersData.stocks,
+    trendingData.stocks,
+    futuresData.stocks,
+    cryptoData.stocks,
+    favorites,
+  ]);
   const { chartMap } = useBatchChartData(allSymbols);
   const { hasNews, getNews } = useNewsData(allSymbols);
 
@@ -179,8 +260,8 @@ export default function App() {
   }, []);
 
   const removeFromGrid = useCallback((symbol) => {
-    setGridStocks(prev => {
-      const next = prev.filter(s => s.symbol !== symbol);
+    setGridStocks((prev) => {
+      const next = prev.filter((s) => s.symbol !== symbol);
       if (next.length === 1) {
         // Last remaining chart → show as single expanded view
         setExpandedStock(next[0]);
@@ -190,36 +271,44 @@ export default function App() {
     });
   }, []);
 
-  const handleStockClick = useCallback((stock, event) => {
-    if (event && (event.ctrlKey || event.metaKey)) {
-      if (!isPremium) {
-        setUpgradePrompt('Multi-chart grid is a Premium feature.');
-        setTimeout(() => setUpgradePrompt(null), 3000);
-        // Fall back to single chart
+  const handleStockClick = useCallback(
+    (stock, event) => {
+      if (event && (event.ctrlKey || event.metaKey)) {
+        if (!isPremium) {
+          setUpgradePrompt("Multi-chart grid is a Premium feature.");
+          setTimeout(() => setUpgradePrompt(null), 3000);
+          // Fall back to single chart
+          setGridStocks([]);
+          setGridMinimized(false);
+          setExpandedStock(stock);
+          return;
+        }
+        // Ctrl+click: toggle in grid selection
+        setExpandedStock(null);
+        setGridMinimized(false); // Re-open grid when adding/removing
+        setGridStocks((prev) => {
+          const exists = prev.find((s) => s.symbol === stock.symbol);
+          return exists
+            ? prev.filter((s) => s.symbol !== stock.symbol)
+            : [...prev, stock];
+        });
+      } else {
+        // Normal click: single chart, clear grid
         setGridStocks([]);
         setGridMinimized(false);
         setExpandedStock(stock);
-        return;
+        addRecent(stock);
       }
-      // Ctrl+click: toggle in grid selection
-      setExpandedStock(null);
-      setGridMinimized(false); // Re-open grid when adding/removing
-      setGridStocks(prev => {
-        const exists = prev.find(s => s.symbol === stock.symbol);
-        return exists ? prev.filter(s => s.symbol !== stock.symbol) : [...prev, stock];
-      });
-    } else {
-      // Normal click: single chart, clear grid
-      setGridStocks([]);
-      setGridMinimized(false);
-      setExpandedStock(stock);
-      addRecent(stock);
-    }
-  }, [isPremium, addRecent]);
+    },
+    [isPremium, addRecent],
+  );
 
-  const isInGrid = useCallback((symbol) => {
-    return gridStocks.some(s => s.symbol === symbol);
-  }, [gridStocks]);
+  const isInGrid = useCallback(
+    (symbol) => {
+      return gridStocks.some((s) => s.symbol === symbol);
+    },
+    [gridStocks],
+  );
 
   const handleSearch = async (symbol) => {
     try {
@@ -252,13 +341,13 @@ export default function App() {
   // Persist tab selection + push to browser history
   const changeTab = useCallback((tab) => {
     setActiveTab(tab);
-    if (session) localStorage.setItem('stock-scanner-tab', tab);
+    if (session) localStorage.setItem("stock-scanner-tab", tab);
     // Close any open chart when switching tabs
     setExpandedStock(null);
     setGridStocks([]);
     setGridMinimized(false);
     if (!skipPushRef.current) {
-      window.history.pushState({ tab, stock: null }, '', `#${tab}`);
+      window.history.pushState({ tab, stock: null }, "", `#${tab}`);
     }
     skipPushRef.current = false;
     window.scrollTo(0, 0);
@@ -273,15 +362,19 @@ export default function App() {
     if (expandedStock && !prev) {
       window.history.pushState(
         { tab: activeTab, stock: expandedStock.symbol },
-        '',
-        `#${activeTab}/${expandedStock.symbol}`
+        "",
+        `#${activeTab}/${expandedStock.symbol}`,
       );
     }
   }, [expandedStock, activeTab]);
 
   // Set initial history state on mount
   useEffect(() => {
-    window.history.replaceState({ tab: activeTab, stock: null }, '', `#${activeTab}`);
+    window.history.replaceState(
+      { tab: activeTab, stock: null },
+      "",
+      `#${activeTab}`,
+    );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle browser back/forward
@@ -303,22 +396,29 @@ export default function App() {
         setGridMinimized(false);
       }
     };
-    window.addEventListener('popstate', handlePop);
-    return () => window.removeEventListener('popstate', handlePop);
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
   }, [changeTab]);
 
   // Reset focus when tab changes
-  useEffect(() => { setFocusedIdx(-1); }, [activeTab]);
+  useEffect(() => {
+    setFocusedIdx(-1);
+  }, [activeTab]);
 
   // Keyboard shortcuts: J/K/Enter/F/Esc/?
   useEffect(() => {
     const handleKey = (e) => {
       // Don't intercept when typing in inputs
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "TEXTAREA" ||
+        e.target.tagName === "SELECT"
+      )
+        return;
       // Don't handle J/K/F/Enter when a chart is expanded (ExpandedChart handles its own keys)
       const chartOpen = expandedStock || gridStocks.length >= 2;
 
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (focusedIdx >= 0 && !chartOpen) {
           setFocusedIdx(-1);
         } else {
@@ -330,32 +430,56 @@ export default function App() {
       // Only handle navigation keys when no chart is expanded and not on heatmap
       if (chartOpen || isSpecialTab) return;
 
-      if (e.key === 'j' || e.key === 'J') {
+      if (e.key === "j" || e.key === "J") {
         e.preventDefault();
-        setFocusedIdx(prev => {
+        setFocusedIdx((prev) => {
           if (stocks.length === 0) return -1;
           return prev < stocks.length - 1 ? prev + 1 : 0;
         });
-      } else if (e.key === 'k' || e.key === 'K') {
+      } else if (e.key === "k" || e.key === "K") {
         e.preventDefault();
-        setFocusedIdx(prev => {
+        setFocusedIdx((prev) => {
           if (stocks.length === 0) return -1;
           return prev > 0 ? prev - 1 : stocks.length - 1;
         });
-      } else if (e.key === 'Enter' && focusedIdx >= 0 && focusedIdx < stocks.length) {
+      } else if (
+        e.key === "Enter" &&
+        focusedIdx >= 0 &&
+        focusedIdx < stocks.length
+      ) {
         e.preventDefault();
         setExpandedStock(stocks[focusedIdx]);
-      } else if ((e.key === 'f' || e.key === 'F') && focusedIdx >= 0 && focusedIdx < stocks.length) {
+      } else if (
+        (e.key === "f" || e.key === "F") &&
+        focusedIdx >= 0 &&
+        focusedIdx < stocks.length
+      ) {
         e.preventDefault();
         toggleFavorite(stocks[focusedIdx].symbol);
       }
     };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [clearAll, expandedStock, gridStocks.length, stocks, focusedIdx, isSpecialTab, toggleFavorite]);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [
+    clearAll,
+    expandedStock,
+    gridStocks.length,
+    stocks,
+    focusedIdx,
+    isSpecialTab,
+    toggleFavorite,
+  ]);
+
+  // Spotlight effect tracking
+  const handleMouseMove = useCallback((e) => {
+    const x = e.clientX;
+    const y = e.clientY;
+    document.documentElement.style.setProperty("--x", `${x}px`);
+    document.documentElement.style.setProperty("--y", `${y}px`);
+  }, []);
 
   return (
-    <div className="app">
+    <div className="app" onMouseMove={handleMouseMove}>
       <Header
         lastUpdated={lastUpdated}
         count={stocks.length}
@@ -388,7 +512,7 @@ export default function App() {
           getNews={getNews}
           onSearch={handleSearch}
           portfolio={portfolioHoldings}
-          onOpenPortfolio={() => changeTab('portfolio')}
+          onOpenPortfolio={() => changeTab("portfolio")}
         />
         <div className="app-content">
           {isHome ? (
@@ -411,7 +535,9 @@ export default function App() {
                 <div className="upgrade-gate">
                   <div className="upgrade-gate-icon">&#128274;</div>
                   <h2>Heatmap is a Premium Feature</h2>
-                  <p>Upgrade to Premium to access the sector performance heatmap.</p>
+                  <p>
+                    Upgrade to Premium to access the sector performance heatmap.
+                  </p>
                 </div>
               )}
             </main>
@@ -420,7 +546,10 @@ export default function App() {
           ) : isEconomy ? (
             <EconomicCalendar active={isEconomy} />
           ) : isMovers ? (
-            <ExtendedHoursMovers active={isMovers} onSelectStock={handleEarningsClick} />
+            <ExtendedHoursMovers
+              active={isMovers}
+              onSelectStock={handleEarningsClick}
+            />
           ) : isScreener ? (
             <Screener
               active={isScreener}
@@ -475,13 +604,21 @@ export default function App() {
             <main className="stock-grid">
               <div className="grid-status-bar">
                 <GridDropdown
-                  label={TABS.find(t => t.key === activeTab)?.label || activeTab}
+                  label={
+                    TABS.find((t) => t.key === activeTab)?.label || activeTab
+                  }
                   stocks={stocks}
                   onSelect={handleStockClick}
                 />
                 <span className="grid-status-meta">
-                  <span className={`status-dot ${error ? 'status-error' : 'status-live'}`} />
-                  <span>{lastUpdated ? formatRelativeTime(lastUpdated) : 'Loading...'}</span>
+                  <span
+                    className={`status-dot ${error ? "status-error" : "status-live"}`}
+                  />
+                  <span>
+                    {lastUpdated
+                      ? formatRelativeTime(lastUpdated)
+                      : "Loading..."}
+                  </span>
                 </span>
               </div>
               {loading && stocks.length === 0 && <LoadingState />}
@@ -525,8 +662,8 @@ export default function App() {
       )}
       {gridStocks.length >= 2 && !gridMinimized && (
         <div className="expanded-overlay" onClick={minimizeGrid}>
-          <div className="expanded-grid" onClick={e => e.stopPropagation()}>
-            {gridStocks.map(stock => (
+          <div className="expanded-grid" onClick={(e) => e.stopPropagation()}>
+            {gridStocks.map((stock) => (
               <ExpandedChart
                 key={stock.symbol}
                 stock={stock}
@@ -545,9 +682,7 @@ export default function App() {
           {gridStocks.length} charts selected
         </button>
       )}
-      {upgradePrompt && (
-        <div className="upgrade-toast">{upgradePrompt}</div>
-      )}
+      {upgradePrompt && <div className="upgrade-toast">{upgradePrompt}</div>}
     </div>
   );
 }

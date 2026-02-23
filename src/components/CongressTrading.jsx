@@ -1,64 +1,94 @@
-import { useState, useMemo } from 'react';
-import { useCongressTrading } from '../hooks/useCongressTrading.js';
+import { useState, useMemo } from "react";
+import { useCongressTrading } from "../hooks/useCongressTrading.js";
 
 function formatDelay(days) {
-  if (days == null) return '---';
+  if (days == null) return "---";
   return `${days}d`;
 }
 
 function delayClass(days) {
-  if (days == null) return '';
-  if (days <= 15) return 'delay-fast';
-  if (days <= 30) return 'delay-normal';
-  if (days <= 45) return 'delay-slow';
-  return 'delay-late';
+  if (days == null) return "";
+  if (days <= 15) return "delay-fast";
+  if (days <= 30) return "delay-normal";
+  if (days <= 45) return "delay-slow";
+  return "delay-late";
 }
 
 export default function CongressTrading({ active, onSelectStock }) {
   const { data, loading } = useCongressTrading(active);
-  const [sortCol, setSortCol] = useState('transactionDate');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortCol, setSortCol] = useState("transactionDate");
+  const [sortDir, setSortDir] = useState("desc");
 
   const trades = useMemo(() => {
     const list = data?.trades || [];
     return [...list].sort((a, b) => {
       let aVal, bVal;
       switch (sortCol) {
-        case 'transactionDate': aVal = a.transactionDate; bVal = b.transactionDate; break;
-        case 'politician': aVal = a.politician; bVal = b.politician; break;
-        case 'chamber': aVal = a.chamber; bVal = b.chamber; break;
-        case 'ticker': aVal = a.ticker; bVal = b.ticker; break;
-        case 'type': aVal = a.type; bVal = b.type; break;
-        case 'amount': aVal = a.amount; bVal = b.amount; break;
-        case 'filingDate': aVal = a.filingDate; bVal = b.filingDate; break;
-        case 'reportingDelay': aVal = a.reportingDelay ?? -1; bVal = b.reportingDelay ?? -1; break;
-        default: aVal = a.transactionDate; bVal = b.transactionDate; break;
+        case "transactionDate":
+          aVal = a.transactionDate;
+          bVal = b.transactionDate;
+          break;
+        case "politician":
+          aVal = a.politician;
+          bVal = b.politician;
+          break;
+        case "chamber":
+          aVal = a.chamber;
+          bVal = b.chamber;
+          break;
+        case "ticker":
+          aVal = a.ticker;
+          bVal = b.ticker;
+          break;
+        case "type":
+          aVal = a.type;
+          bVal = b.type;
+          break;
+        case "amount":
+          aVal = a.amount;
+          bVal = b.amount;
+          break;
+        case "filingDate":
+          aVal = a.filingDate;
+          bVal = b.filingDate;
+          break;
+        case "reportingDelay":
+          aVal = a.reportingDelay ?? -1;
+          bVal = b.reportingDelay ?? -1;
+          break;
+        default:
+          aVal = a.transactionDate;
+          bVal = b.transactionDate;
+          break;
       }
-      if (typeof aVal === 'string') {
+      if (typeof aVal === "string") {
         const cmp = aVal.localeCompare(bVal);
-        return sortDir === 'asc' ? cmp : -cmp;
+        return sortDir === "asc" ? cmp : -cmp;
       }
-      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      return sortDir === "asc" ? aVal - bVal : bVal - aVal;
     });
   }, [data, sortCol, sortDir]);
 
   const handleSort = (col) => {
     if (sortCol === col) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortCol(col);
-      setSortDir('desc');
+      setSortDir("desc");
     }
   };
 
   const sortIcon = (col) => {
-    if (sortCol !== col) return '';
-    return sortDir === 'asc' ? ' \u25B2' : ' \u25BC';
+    if (sortCol !== col) return "";
+    return sortDir === "asc" ? " \u25B2" : " \u25BC";
   };
 
   const handleRowClick = (trade) => {
     if (trade.ticker && onSelectStock) {
-      onSelectStock({ symbol: trade.ticker, name: trade.assetDescription || trade.ticker });
+      onSelectStock({
+        symbol: trade.ticker,
+        name: trade.assetDescription || trade.ticker,
+      });
     }
   };
 
@@ -84,11 +114,18 @@ export default function CongressTrading({ active, onSelectStock }) {
       {/* Most Active Politicians */}
       {data?.mostActive?.length > 0 && (
         <div className="congress-summary-grid">
-          {data.mostActive.map(p => (
-            <div key={`${p.politician}-${p.chamber}`} className="congress-summary-card">
+          {data.mostActive.map((p) => (
+            <div
+              key={`${p.politician}-${p.chamber}`}
+              className="congress-summary-card"
+            >
               <div className="congress-card-top">
-                <span className="congress-card-name" title={p.politician}>{p.politician}</span>
-                <span className={`sentiment-badge sm ${p.chamber === 'Senate' ? 'senate' : 'house'}`}>
+                <span className="congress-card-name" title={p.politician}>
+                  {p.politician}
+                </span>
+                <span
+                  className={`sentiment-badge sm ${p.chamber === "Senate" ? "senate" : "house"}`}
+                >
                   {p.chamber}
                 </span>
               </div>
@@ -114,27 +151,48 @@ export default function CongressTrading({ active, onSelectStock }) {
         <table className="smartmoney-table">
           <thead>
             <tr>
-              <th onClick={() => handleSort('transactionDate')} className={sortCol === 'transactionDate' ? 'sorted' : ''}>
-                Date{sortIcon('transactionDate')}
+              <th
+                onClick={() => handleSort("transactionDate")}
+                className={sortCol === "transactionDate" ? "sorted" : ""}
+              >
+                Date{sortIcon("transactionDate")}
               </th>
-              <th onClick={() => handleSort('politician')} className={sortCol === 'politician' ? 'sorted' : ''}>
-                Politician{sortIcon('politician')}
+              <th
+                onClick={() => handleSort("politician")}
+                className={sortCol === "politician" ? "sorted" : ""}
+              >
+                Politician{sortIcon("politician")}
               </th>
-              <th onClick={() => handleSort('chamber')} className={sortCol === 'chamber' ? 'sorted' : ''}>
-                Chamber{sortIcon('chamber')}
+              <th
+                onClick={() => handleSort("chamber")}
+                className={sortCol === "chamber" ? "sorted" : ""}
+              >
+                Chamber{sortIcon("chamber")}
               </th>
-              <th onClick={() => handleSort('ticker')} className={sortCol === 'ticker' ? 'sorted' : ''}>
-                Ticker{sortIcon('ticker')}
+              <th
+                onClick={() => handleSort("ticker")}
+                className={sortCol === "ticker" ? "sorted" : ""}
+              >
+                Ticker{sortIcon("ticker")}
               </th>
               <th>Type</th>
-              <th onClick={() => handleSort('amount')} className={`${sortCol === 'amount' ? 'sorted' : ''} sm-hide-mobile`}>
-                Amount{sortIcon('amount')}
+              <th
+                onClick={() => handleSort("amount")}
+                className={`${sortCol === "amount" ? "sorted" : ""} sm-hide-mobile`}
+              >
+                Amount{sortIcon("amount")}
               </th>
-              <th onClick={() => handleSort('filingDate')} className={`${sortCol === 'filingDate' ? 'sorted' : ''} sm-hide-mobile`}>
-                Filed{sortIcon('filingDate')}
+              <th
+                onClick={() => handleSort("filingDate")}
+                className={`${sortCol === "filingDate" ? "sorted" : ""} sm-hide-mobile`}
+              >
+                Filed{sortIcon("filingDate")}
               </th>
-              <th onClick={() => handleSort('reportingDelay')} className={sortCol === 'reportingDelay' ? 'sorted' : ''}>
-                Delay{sortIcon('reportingDelay')}
+              <th
+                onClick={() => handleSort("reportingDelay")}
+                className={sortCol === "reportingDelay" ? "sorted" : ""}
+              >
+                Delay{sortIcon("reportingDelay")}
               </th>
             </tr>
           </thead>
@@ -142,25 +200,31 @@ export default function CongressTrading({ active, onSelectStock }) {
             {trades.map((trade, i) => (
               <tr
                 key={`${trade.ticker}-${trade.politician}-${trade.transactionDate}-${i}`}
-                className={trade.type === 'Buy' ? 'row-buy' : 'row-sell'}
+                className={trade.type === "Buy" ? "row-buy" : "row-sell"}
                 onClick={() => handleRowClick(trade)}
               >
                 <td className="sm-date">{trade.transactionDate}</td>
                 <td className="sm-name">{trade.politician}</td>
                 <td>
-                  <span className={`sentiment-badge sm ${trade.chamber === 'Senate' ? 'senate' : 'house'}`}>
+                  <span
+                    className={`sentiment-badge sm ${trade.chamber === "Senate" ? "senate" : "house"}`}
+                  >
                     {trade.chamber}
                   </span>
                 </td>
                 <td className="sm-symbol">{trade.ticker}</td>
                 <td>
-                  <span className={`sentiment-badge ${trade.type === 'Buy' ? 'bullish' : 'bearish'}`}>
-                    {trade.type === 'Buy' ? 'BUY' : 'SELL'}
+                  <span
+                    className={`sentiment-badge ${trade.type === "Buy" ? "bullish" : "bearish"}`}
+                  >
+                    {trade.type === "Buy" ? "BUY" : "SELL"}
                   </span>
                 </td>
                 <td className="sm-hide-mobile">{trade.amount}</td>
                 <td className="sm-hide-mobile sm-date">{trade.filingDate}</td>
-                <td className={`congress-delay ${delayClass(trade.reportingDelay)}`}>
+                <td
+                  className={`congress-delay ${delayClass(trade.reportingDelay)}`}
+                >
                   {formatDelay(trade.reportingDelay)}
                 </td>
               </tr>

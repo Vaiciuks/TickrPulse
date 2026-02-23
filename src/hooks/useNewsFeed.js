@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
-const SYMBOLS = 'SPY,QQQ,DIA,IWM,NVDA,AAPL,TSLA,MSFT,AMZN,META,GOOG,AMD';
+const SYMBOLS = "SPY,QQQ,DIA,IWM,NVDA,AAPL,TSLA,MSFT,AMZN,META,GOOG,AMD";
 const REFRESH_INTERVAL = 120_000; // 2 minutes
 
 function normalizeTitle(title) {
-  return title.toLowerCase().trim().replace(/\s+/g, ' ');
+  return title.toLowerCase().trim().replace(/\s+/g, " ");
 }
 
 function mergeAndDeduplicate(marketArticles, symbolNewsMap) {
@@ -36,7 +36,7 @@ function mergeAndDeduplicate(marketArticles, symbolNewsMap) {
   all.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
   // Filter out articles older than 3 days or with missing timestamps
   const threeDaysAgo = Math.floor(Date.now() / 1000) - 3 * 86400;
-  return all.filter(a => a.publishedAt > threeDaysAgo);
+  return all.filter((a) => a.publishedAt > threeDaysAgo);
 }
 
 export function useNewsFeed(active) {
@@ -51,17 +51,21 @@ export function useNewsFeed(active) {
     const fetchAll = async () => {
       try {
         const [marketRes, symbolRes] = await Promise.allSettled([
-          fetch('/api/market-news').then(r => r.ok ? r.json() : { articles: [] }),
-          fetch(`/api/news?symbols=${SYMBOLS}`).then(r => r.ok ? r.json() : { news: {} }),
+          fetch("/api/market-news").then((r) =>
+            r.ok ? r.json() : { articles: [] },
+          ),
+          fetch(`/api/news?symbols=${SYMBOLS}`).then((r) =>
+            r.ok ? r.json() : { news: {} },
+          ),
         ]);
 
-        const marketArticles = marketRes.status === 'fulfilled'
-          ? (marketRes.value.articles || [])
-          : [];
+        const marketArticles =
+          marketRes.status === "fulfilled"
+            ? marketRes.value.articles || []
+            : [];
 
-        const symbolNewsMap = symbolRes.status === 'fulfilled'
-          ? (symbolRes.value.news || {})
-          : {};
+        const symbolNewsMap =
+          symbolRes.status === "fulfilled" ? symbolRes.value.news || {} : {};
 
         if (mounted) {
           setArticles(mergeAndDeduplicate(marketArticles, symbolNewsMap));
@@ -75,7 +79,10 @@ export function useNewsFeed(active) {
 
     fetchAll();
     const id = setInterval(fetchAll, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active]);
 
   return { articles, loading, lastUpdated };

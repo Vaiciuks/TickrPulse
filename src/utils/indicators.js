@@ -53,11 +53,23 @@ export function calcRSI(data, period = 14) {
 }
 
 // MACD (Moving Average Convergence Divergence)
-export function calcMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-  if (data.length < slowPeriod + signalPeriod) return { macd: [], signal: [], histogram: [] };
+export function calcMACD(
+  data,
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9,
+) {
+  if (data.length < slowPeriod + signalPeriod)
+    return { macd: [], signal: [], histogram: [] };
 
-  const fastEMA = calcEMAValues(data.map(d => d.close), fastPeriod);
-  const slowEMA = calcEMAValues(data.map(d => d.close), slowPeriod);
+  const fastEMA = calcEMAValues(
+    data.map((d) => d.close),
+    fastPeriod,
+  );
+  const slowEMA = calcEMAValues(
+    data.map((d) => d.close),
+    slowPeriod,
+  );
 
   // MACD line = fast EMA - slow EMA (aligned from slowPeriod-1 onward)
   const macdValues = [];
@@ -73,7 +85,7 @@ export function calcMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 
   // Signal line = EMA of MACD values
   const signalEMA = calcEMAValues(
     macdValues.map((v, i) => ({ close: v, time: macdLine[i].time })),
-    signalPeriod
+    signalPeriod,
   );
 
   const signal = [];
@@ -88,7 +100,7 @@ export function calcMACD(data, fastPeriod = 12, slowPeriod = 26, signalPeriod = 
     histogram.push({
       time: t,
       value: hist,
-      color: hist >= 0 ? 'rgba(0, 200, 83, 0.5)' : 'rgba(255, 23, 68, 0.5)',
+      color: hist >= 0 ? "rgba(0, 200, 83, 0.5)" : "rgba(255, 23, 68, 0.5)",
     });
   }
 
@@ -111,7 +123,10 @@ export function calcVWAP(data) {
   for (const d of data) {
     // Detect new trading day — reset accumulators
     const date = new Date(d.time * 1000);
-    const day = date.getUTCFullYear() * 10000 + (date.getUTCMonth() + 1) * 100 + date.getUTCDate();
+    const day =
+      date.getUTCFullYear() * 10000 +
+      (date.getUTCMonth() + 1) * 100 +
+      date.getUTCDate();
     if (day !== prevDay) {
       cumVol = 0;
       cumTP = 0;
@@ -135,10 +150,11 @@ function calcEMAValues(values, period) {
   const result = new Array(values.length).fill(0);
 
   // Get close values (supports both number arrays and object arrays)
-  const getVal = (v) => typeof v === 'number' ? v : v.close;
+  const getVal = (v) => (typeof v === "number" ? v : v.close);
 
   let sum = 0;
-  for (let i = 0; i < period && i < values.length; i++) sum += getVal(values[i]);
+  for (let i = 0; i < period && i < values.length; i++)
+    sum += getVal(values[i]);
   result[period - 1] = sum / period;
 
   for (let i = period; i < values.length; i++) {

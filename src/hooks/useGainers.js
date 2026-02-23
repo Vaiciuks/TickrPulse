@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { REFRESH_INTERVAL } from '../utils/constants.js';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { REFRESH_INTERVAL } from "../utils/constants.js";
 
 export function useGainers() {
   const [gainers, setGainers] = useState([]);
@@ -11,7 +11,7 @@ export function useGainers() {
   const fetchGainers = useCallback(async (isInitial) => {
     try {
       if (isInitial) setLoading(true);
-      const res = await fetch('/api/gainers');
+      const res = await fetch("/api/gainers");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setGainers(data.gainers);
@@ -27,7 +27,10 @@ export function useGainers() {
 
   useEffect(() => {
     fetchGainers(true);
-    intervalRef.current = setInterval(() => fetchGainers(false), REFRESH_INTERVAL);
+    intervalRef.current = setInterval(
+      () => fetchGainers(false),
+      REFRESH_INTERVAL,
+    );
     return () => clearInterval(intervalRef.current);
   }, [fetchGainers]);
 

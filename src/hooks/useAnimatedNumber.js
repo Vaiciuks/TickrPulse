@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 /**
  * Smoothly animates a number from its current value to a new target.
@@ -43,7 +43,9 @@ export function useAnimatedNumber(target, duration = 300) {
     };
 
     rafRef.current = requestAnimationFrame(animate);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [target, duration]);
 
   return display;

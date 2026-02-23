@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 const REFRESH_INTERVAL = 120_000; // 2 minutes
 
@@ -13,7 +13,7 @@ export function useEarningsCalendar(active) {
 
     const fetchEarnings = async () => {
       try {
-        const res = await fetch('/api/earnings');
+        const res = await fetch("/api/earnings");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (mounted) {
@@ -28,7 +28,10 @@ export function useEarningsCalendar(active) {
 
     fetchEarnings();
     const id = setInterval(fetchEarnings, REFRESH_INTERVAL);
-    return () => { mounted = false; clearInterval(id); };
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
   }, [active]);
 
   return { earnings, loading, lastUpdated };

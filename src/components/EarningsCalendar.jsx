@@ -1,9 +1,22 @@
-import { useState, useMemo } from 'react';
-import { useEarningsCalendar } from '../hooks/useEarningsCalendar.js';
-import StockLogo from './StockLogo.jsx';
+import { useState, useMemo } from "react";
+import { useEarningsCalendar } from "../hooks/useEarningsCalendar.js";
+import StockLogo from "./StockLogo.jsx";
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function getSunday(weekOffset = 0) {
   const now = new Date();
@@ -25,29 +38,34 @@ function getWeekDays(weekOffset) {
 
 function formatDateKey(date) {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
 function isToday(date) {
   const now = new Date();
-  return date.getFullYear() === now.getFullYear()
-    && date.getMonth() === now.getMonth()
-    && date.getDate() === now.getDate();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
 }
 
 function formatPrice(price) {
-  if (!price) return '--';
-  return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!price) return "--";
+  return price.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 function formatMarketCap(mc) {
-  if (!mc) return '';
+  if (!mc) return "";
   if (mc >= 1e12) return `$${(mc / 1e12).toFixed(1)}T`;
   if (mc >= 1e9) return `$${(mc / 1e9).toFixed(0)}B`;
   if (mc >= 1e6) return `$${(mc / 1e6).toFixed(0)}M`;
-  return '';
+  return "";
 }
 
 function formatEps(val) {
@@ -66,7 +84,7 @@ function buildHighlight(stock) {
   if (epsTTM) {
     parts.push(`Trailing EPS: ${epsTTM}`);
   }
-  if (stock.sector && stock.sector !== 'Other') {
+  if (stock.sector && stock.sector !== "Other") {
     parts.push(stock.sector);
   }
   const mcap = formatMarketCap(stock.marketCap);
@@ -74,7 +92,7 @@ function buildHighlight(stock) {
     parts.push(`${mcap} market cap`);
   }
 
-  return parts.length > 0 ? parts.join(' · ') : null;
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 function EarningsCard({ stock, onClick }) {
@@ -89,21 +107,24 @@ function EarningsCard({ stock, onClick }) {
             <span className="ecal-card-symbol">{stock.symbol}</span>
             <span className="ecal-card-name">{stock.name}</span>
           </div>
-          {highlight && (
-            <p className="ecal-card-highlight">{highlight}</p>
-          )}
+          {highlight && <p className="ecal-card-highlight">{highlight}</p>}
         </div>
       </div>
       <div className="ecal-card-right">
         {stock.price != null ? (
           <>
             <span className="ecal-card-price">${formatPrice(stock.price)}</span>
-            <span className={`ecal-card-change ${stock.changePercent >= 0 ? 'positive' : 'negative'}`}>
-              {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent?.toFixed(2)}%
+            <span
+              className={`ecal-card-change ${stock.changePercent >= 0 ? "positive" : "negative"}`}
+            >
+              {stock.changePercent >= 0 ? "+" : ""}
+              {stock.changePercent?.toFixed(2)}%
             </span>
           </>
         ) : (
-          <span className="ecal-card-mcap">{formatMarketCap(stock.marketCap)}</span>
+          <span className="ecal-card-mcap">
+            {formatMarketCap(stock.marketCap)}
+          </span>
         )}
       </div>
     </button>
@@ -120,13 +141,18 @@ export default function EarningsCalendar({ active, onSelectStock }) {
   // Auto-select: prefer today if it has earnings, otherwise first day with earnings, fallback to today
   const activeIdx = useMemo(() => {
     if (selectedDayIdx !== null) return selectedDayIdx;
-    const todayIdx = weekDays.findIndex(d => isToday(d));
+    const todayIdx = weekDays.findIndex((d) => isToday(d));
     // If today is in this week and has earnings, pick it
-    if (todayIdx >= 0 && (earnings[formatDateKey(weekDays[todayIdx])]?.length || 0) > 0) {
+    if (
+      todayIdx >= 0 &&
+      (earnings[formatDateKey(weekDays[todayIdx])]?.length || 0) > 0
+    ) {
       return todayIdx;
     }
     // Otherwise pick first day with earnings
-    const firstWithEarnings = weekDays.findIndex(d => (earnings[formatDateKey(d)]?.length || 0) > 0);
+    const firstWithEarnings = weekDays.findIndex(
+      (d) => (earnings[formatDateKey(d)]?.length || 0) > 0,
+    );
     if (firstWithEarnings >= 0) return firstWithEarnings;
     // Fallback to today or first day
     return todayIdx >= 0 ? todayIdx : 0;
@@ -148,12 +174,12 @@ export default function EarningsCalendar({ active, onSelectStock }) {
   };
 
   const prevWeek = () => {
-    setWeekOffset(o => o - 1);
+    setWeekOffset((o) => o - 1);
     setSelectedDayIdx(null);
   };
 
   const nextWeek = () => {
-    setWeekOffset(o => o + 1);
+    setWeekOffset((o) => o + 1);
     setSelectedDayIdx(null);
   };
 
@@ -163,11 +189,25 @@ export default function EarningsCalendar({ active, onSelectStock }) {
       <div className="ecal-header">
         <h3 className="ecal-title">Earnings Calendar</h3>
         <div className="ecal-nav">
-          <button className="ecal-nav-btn" onClick={prevWeek} aria-label="Previous week">&#8249;</button>
+          <button
+            className="ecal-nav-btn"
+            onClick={prevWeek}
+            aria-label="Previous week"
+          >
+            &#8249;
+          </button>
           {weekOffset !== 0 && (
-            <button className="ecal-today-btn" onClick={goToToday}>Today</button>
+            <button className="ecal-today-btn" onClick={goToToday}>
+              Today
+            </button>
           )}
-          <button className="ecal-nav-btn" onClick={nextWeek} aria-label="Next week">&#8250;</button>
+          <button
+            className="ecal-nav-btn"
+            onClick={nextWeek}
+            aria-label="Next week"
+          >
+            &#8250;
+          </button>
         </div>
       </div>
 
@@ -182,13 +222,17 @@ export default function EarningsCalendar({ active, onSelectStock }) {
           return (
             <button
               key={key}
-              className={`ecal-day${selected ? ' ecal-day--selected' : ''}${today ? ' ecal-day--today' : ''}`}
+              className={`ecal-day${selected ? " ecal-day--selected" : ""}${today ? " ecal-day--today" : ""}`}
               onClick={() => setSelectedDayIdx(i)}
             >
               <span className="ecal-day-name">{DAY_NAMES[i]}</span>
-              <span className="ecal-day-date">{MONTH_NAMES[day.getMonth()]} {day.getDate()}</span>
-              <span className={`ecal-day-count${count === 0 ? ' ecal-day-count--empty' : ''}`}>
-                {count > 0 ? `${count} Calls` : 'No Calls'}
+              <span className="ecal-day-date">
+                {MONTH_NAMES[day.getMonth()]} {day.getDate()}
+              </span>
+              <span
+                className={`ecal-day-count${count === 0 ? " ecal-day-count--empty" : ""}`}
+              >
+                {count > 0 ? `${count} Calls` : "No Calls"}
               </span>
             </button>
           );
@@ -198,7 +242,9 @@ export default function EarningsCalendar({ active, onSelectStock }) {
       {/* Selected day label */}
       {selectedStocks.length > 0 && (
         <div className="ecal-day-label">
-          {MONTH_NAMES[selectedDate.getMonth()]} {selectedDate.getDate()} — {selectedStocks.length} Earnings Call{selectedStocks.length !== 1 ? 's' : ''}
+          {MONTH_NAMES[selectedDate.getMonth()]} {selectedDate.getDate()} —{" "}
+          {selectedStocks.length} Earnings Call
+          {selectedStocks.length !== 1 ? "s" : ""}
         </div>
       )}
 
@@ -219,7 +265,8 @@ export default function EarningsCalendar({ active, onSelectStock }) {
           ))
         ) : (
           <div className="ecal-empty">
-            No earnings scheduled for {MONTH_NAMES[selectedDate.getMonth()]} {selectedDate.getDate()}
+            No earnings scheduled for {MONTH_NAMES[selectedDate.getMonth()]}{" "}
+            {selectedDate.getDate()}
           </div>
         )}
       </div>

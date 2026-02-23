@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { QUOTE_POLL_MS } from '../utils/constants.js';
-import { authFetch } from '../lib/authFetch.js';
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { QUOTE_POLL_MS } from "../utils/constants.js";
+import { authFetch } from "../lib/authFetch.js";
 
-const STORAGE_KEY = 'favorites';
+const STORAGE_KEY = "favorites";
 
 function loadFavorites() {
   try {
@@ -20,8 +20,17 @@ function saveFavorites(symbols) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(symbols));
 }
 
-export function useFavorites(gainers, losers, trending = [], futures = [], crypto = [], session = null) {
-  const [symbols, setSymbols] = useState(() => session ? loadFavorites() : []);
+export function useFavorites(
+  gainers,
+  losers,
+  trending = [],
+  futures = [],
+  crypto = [],
+  session = null,
+) {
+  const [symbols, setSymbols] = useState(() =>
+    session ? loadFavorites() : [],
+  );
   const [extraQuotes, setExtraQuotes] = useState({});
   const pollRef = useRef(null);
   const queueRef = useRef([]);
@@ -47,11 +56,11 @@ export function useFavorites(gainers, losers, trending = [], futures = [], crypt
     if (initialSyncDone.current) return;
     initialSyncDone.current = true;
 
-    authFetch('/api/user/favorites')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
+    authFetch("/api/user/favorites")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
         if (!data) return;
-        setSymbols(prev => {
+        setSymbols((prev) => {
           const merged = [...new Set([...prev, ...data.favorites])];
           saveFavorites(merged);
           return merged;
@@ -67,9 +76,9 @@ export function useFavorites(gainers, losers, trending = [], futures = [], crypt
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(() => {
-      authFetch('/api/user/favorites', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      authFetch("/api/user/favorites", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbols }),
       }).catch(() => {});
     }, 2000);
@@ -77,28 +86,44 @@ export function useFavorites(gainers, losers, trending = [], futures = [], crypt
     return () => clearTimeout(syncTimeoutRef.current);
   }, [symbols, session?.access_token]);
 
-  const toggleFavorite = useCallback((symbol) => {
-    setSymbols(prev => {
-      const next = prev.includes(symbol)
-        ? prev.filter(s => s !== symbol)
-        : [...prev, symbol];
-      if (session) saveFavorites(next);
-      return next;
-    });
-  }, [session]);
+  const toggleFavorite = useCallback(
+    (symbol) => {
+      setSymbols((prev) => {
+        const next = prev.includes(symbol)
+          ? prev.filter((s) => s !== symbol)
+          : [...prev, symbol];
+        if (session) saveFavorites(next);
+        return next;
+      });
+    },
+    [session],
+  );
 
-  const isFavorite = useCallback((symbol) => symbolSet.has(symbol), [symbolSet]);
+  const isFavorite = useCallback(
+    (symbol) => symbolSet.has(symbol),
+    [symbolSet],
+  );
 
-  const reorderFavorites = useCallback((fromIndex, toIndex) => {
-    setSymbols(prev => {
-      if (fromIndex < 0 || fromIndex >= prev.length || toIndex < 0 || toIndex >= prev.length || fromIndex === toIndex) return prev;
-      const next = [...prev];
-      const [item] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, item);
-      if (session) saveFavorites(next);
-      return next;
-    });
-  }, [session]);
+  const reorderFavorites = useCallback(
+    (fromIndex, toIndex) => {
+      setSymbols((prev) => {
+        if (
+          fromIndex < 0 ||
+          fromIndex >= prev.length ||
+          toIndex < 0 ||
+          toIndex >= prev.length ||
+          fromIndex === toIndex
+        )
+          return prev;
+        const next = [...prev];
+        const [item] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, item);
+        if (session) saveFavorites(next);
+        return next;
+      });
+    },
+    [session],
+  );
 
   // Build a lookup map from gainers + losers + trending
   const knownMap = useRef({});
@@ -113,16 +138,18 @@ export function useFavorites(gainers, losers, trending = [], futures = [], crypt
   }, [gainers, losers, trending, futures, crypto]);
 
   // Find symbols that need independent polling (not in gainers/losers)
-  const missingSymbols = symbols.filter(s => !knownMap.current[s]);
+  const missingSymbols = symbols.filter((s) => !knownMap.current[s]);
 
   // Batch-fetch all missing favorites in a single API call
   const fetchMissingQuotes = useCallback(async (syms) => {
     if (syms.length === 0) return;
     try {
-      const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(syms.join(','))}`);
+      const res = await fetch(
+        `/api/quotes?symbols=${encodeURIComponent(syms.join(","))}`,
+      );
       if (!res.ok) return;
       const quotes = await res.json();
-      setExtraQuotes(prev => ({ ...prev, ...quotes }));
+      setExtraQuotes((prev) => ({ ...prev, ...quotes }));
     } catch {
       // ignore
     }
@@ -138,13 +165,16 @@ export function useFavorites(gainers, losers, trending = [], futures = [], crypt
     // Initial fetch for all missing
     fetchMissingQuotes(missingSymbols);
 
-    pollRef.current = setInterval(() => fetchMissingQuotes(missingSymbols), QUOTE_POLL_MS);
+    pollRef.current = setInterval(
+      () => fetchMissingQuotes(missingSymbols),
+      QUOTE_POLL_MS,
+    );
     return () => clearInterval(pollRef.current);
-  }, [missingSymbols.join(','), fetchMissingQuotes]);
+  }, [missingSymbols.join(","), fetchMissingQuotes]);
 
   // Build favorites array: prefer gainers/losers data, fallback to extraQuotes
   const favorites = symbols
-    .map(sym => knownMap.current[sym] || extraQuotes[sym])
+    .map((sym) => knownMap.current[sym] || extraQuotes[sym])
     .filter(Boolean);
 
   return { favorites, toggleFavorite, isFavorite, reorderFavorites };

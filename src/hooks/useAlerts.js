@@ -1,13 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { authFetch } from '../lib/authFetch.js';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { authFetch } from "../lib/authFetch.js";
 
-const STORAGE_KEY = 'stock-scanner-alerts';
+const STORAGE_KEY = "stock-scanner-alerts";
 const FREE_ALERT_LIMIT = 3;
 
 function loadAlerts() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveAlerts(alerts) {
@@ -15,7 +17,7 @@ function saveAlerts(alerts) {
 }
 
 export function useAlerts(session = null, isPremium = false) {
-  const [alerts, setAlerts] = useState(() => session ? loadAlerts() : []);
+  const [alerts, setAlerts] = useState(() => (session ? loadAlerts() : []));
   const notifiedRef = useRef(new Set());
   const syncTimeoutRef = useRef(null);
   const initialSyncDone = useRef(false);
@@ -41,15 +43,20 @@ export function useAlerts(session = null, isPremium = false) {
     if (initialSyncDone.current) return;
     initialSyncDone.current = true;
 
-    authFetch('/api/user/alerts')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
+    authFetch("/api/user/alerts")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
         if (!data) return;
-        setAlerts(prev => {
-          const existing = new Set(prev.map(a => `${a.symbol}-${a.direction}-${a.targetPrice}`));
+        setAlerts((prev) => {
+          const existing = new Set(
+            prev.map((a) => `${a.symbol}-${a.direction}-${a.targetPrice}`),
+          );
           const cloudAlerts = data.alerts
-            .filter(a => !existing.has(`${a.symbol}-${a.direction}-${a.target_price}`))
-            .map(a => ({
+            .filter(
+              (a) =>
+                !existing.has(`${a.symbol}-${a.direction}-${a.target_price}`),
+            )
+            .map((a) => ({
               id: `${a.symbol}-${a.direction}-${a.target_price}-${Date.now()}`,
               symbol: a.symbol,
               targetPrice: a.target_price,
@@ -71,9 +78,9 @@ export function useAlerts(session = null, isPremium = false) {
 
     if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(() => {
-      authFetch('/api/user/alerts', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      authFetch("/api/user/alerts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ alerts }),
       }).catch(() => {});
     }, 2000);
@@ -81,48 +88,78 @@ export function useAlerts(session = null, isPremium = false) {
     return () => clearTimeout(syncTimeoutRef.current);
   }, [alerts, session?.access_token]);
 
-  const addAlert = useCallback((symbol, targetPrice, direction) => {
-    const activeCount = alerts.filter(a => a.active).length;
-    if (!isPremium && activeCount >= FREE_ALERT_LIMIT) {
-      return { error: `Free tier limited to ${FREE_ALERT_LIMIT} active alerts. Upgrade to Premium for unlimited.` };
-    }
-    const id = `${symbol}-${direction}-${targetPrice}-${Date.now()}`;
-    setAlerts(prev => [...prev, { id, symbol, targetPrice, direction, active: true, createdAt: Date.now() }]);
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
-    return { id };
-  }, [alerts, isPremium]);
+  const addAlert = useCallback(
+    (symbol, targetPrice, direction) => {
+      const activeCount = alerts.filter((a) => a.active).length;
+      if (!isPremium && activeCount >= FREE_ALERT_LIMIT) {
+        return {
+          error: `Free tier limited to ${FREE_ALERT_LIMIT} active alerts. Upgrade to Premium for unlimited.`,
+        };
+      }
+      const id = `${symbol}-${direction}-${targetPrice}-${Date.now()}`;
+      setAlerts((prev) => [
+        ...prev,
+        {
+          id,
+          symbol,
+          targetPrice,
+          direction,
+          active: true,
+          createdAt: Date.now(),
+        },
+      ]);
+      if (
+        typeof Notification !== "undefined" &&
+        Notification.permission === "default"
+      )
+        Notification.requestPermission();
+      return { id };
+    },
+    [alerts, isPremium],
+  );
 
   const removeAlert = useCallback((id) => {
-    setAlerts(prev => prev.filter(a => a.id !== id));
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
     notifiedRef.current.delete(id);
   }, []);
 
   const toggleAlert = useCallback((id) => {
-    setAlerts(prev => prev.map(a => a.id === id ? { ...a, active: !a.active } : a));
+    setAlerts((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, active: !a.active } : a)),
+    );
   }, []);
 
-  const getAlerts = useCallback((symbol) => {
-    return alerts.filter(a => a.symbol === symbol && a.active);
-  }, [alerts]);
+  const getAlerts = useCallback(
+    (symbol) => {
+      return alerts.filter((a) => a.symbol === symbol && a.active);
+    },
+    [alerts],
+  );
 
   const checkAlerts = useCallback((symbol, price) => {
-    if (!price || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (
+      !price ||
+      typeof Notification === "undefined" ||
+      Notification.permission !== "granted"
+    )
+      return;
 
-    setAlerts(prev => {
+    setAlerts((prev) => {
       let changed = false;
-      const next = prev.map(a => {
-        if (!a.active || a.symbol !== symbol || notifiedRef.current.has(a.id)) return a;
+      const next = prev.map((a) => {
+        if (!a.active || a.symbol !== symbol || notifiedRef.current.has(a.id))
+          return a;
 
         const triggered =
-          (a.direction === 'above' && price >= a.targetPrice) ||
-          (a.direction === 'below' && price <= a.targetPrice);
+          (a.direction === "above" && price >= a.targetPrice) ||
+          (a.direction === "below" && price <= a.targetPrice);
 
         if (triggered) {
           notifiedRef.current.add(a.id);
           changed = true;
           new Notification(`${symbol} Price Alert`, {
             body: `${symbol} is now $${price.toFixed(2)} (${a.direction} $${a.targetPrice.toFixed(2)})`,
-            icon: '/favicon.ico',
+            icon: "/favicon.ico",
           });
           return { ...a, active: false };
         }
@@ -132,7 +169,15 @@ export function useAlerts(session = null, isPremium = false) {
     });
   }, []);
 
-  const alertCount = alerts.filter(a => a.active).length;
+  const alertCount = alerts.filter((a) => a.active).length;
 
-  return { alerts, addAlert, removeAlert, toggleAlert, getAlerts, checkAlerts, alertCount };
+  return {
+    alerts,
+    addAlert,
+    removeAlert,
+    toggleAlert,
+    getAlerts,
+    checkAlerts,
+    alertCount,
+  };
 }

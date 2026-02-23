@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 const MAX_RETRIES = 2;
 const CHUNK_SIZE = 50;
@@ -12,7 +12,7 @@ function chunk(arr, size) {
 }
 
 function is24hSymbol(s) {
-  return s.endsWith('=F') || s.endsWith('-USD') || s.endsWith('=X');
+  return s.endsWith("=F") || s.endsWith("-USD") || s.endsWith("=X");
 }
 
 export function useBatchChartData(symbols) {
@@ -22,18 +22,18 @@ export function useBatchChartData(symbols) {
   const retryCountRef = useRef(0);
 
   useEffect(() => {
-    const missing = symbols.filter(s => !fetchedRef.current.has(s));
+    const missing = symbols.filter((s) => !fetchedRef.current.has(s));
     if (missing.length === 0) return;
 
     // Mark as in-flight to avoid duplicate requests
-    missing.forEach(s => fetchedRef.current.add(s));
+    missing.forEach((s) => fetchedRef.current.add(s));
 
     const fetchChunk = async (batch, range, interval) => {
       const params = new URLSearchParams({
-        symbols: batch.join(','),
+        symbols: batch.join(","),
         range,
         interval,
-        prepost: 'true',
+        prepost: "true",
       });
       const res = await fetch(`/api/charts?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -43,19 +43,27 @@ export function useBatchChartData(symbols) {
 
     const fetchAll = async () => {
       // Split: futures/crypto use 5d/15m (always have data), stocks use 1d/5m
-      const stocks = missing.filter(s => !is24hSymbol(s));
-      const extended = missing.filter(s => is24hSymbol(s));
+      const stocks = missing.filter((s) => !is24hSymbol(s));
+      const extended = missing.filter((s) => is24hSymbol(s));
       const allFailed = [];
 
       const batches = [
-        ...chunk(stocks, CHUNK_SIZE).map(b => ({ batch: b, range: '1d', interval: '5m' })),
-        ...chunk(extended, CHUNK_SIZE).map(b => ({ batch: b, range: '5d', interval: '15m' })),
+        ...chunk(stocks, CHUNK_SIZE).map((b) => ({
+          batch: b,
+          range: "1d",
+          interval: "5m",
+        })),
+        ...chunk(extended, CHUNK_SIZE).map((b) => ({
+          batch: b,
+          range: "5d",
+          interval: "15m",
+        })),
       ];
 
       for (const { batch, range, interval } of batches) {
         try {
           const charts = await fetchChunk(batch, range, interval);
-          setChartMap(prev => ({ ...prev, ...charts }));
+          setChartMap((prev) => ({ ...prev, ...charts }));
 
           // Symbols missing from response OR returned with empty data should retry
           for (const s of batch) {
@@ -66,14 +74,14 @@ export function useBatchChartData(symbols) {
             }
           }
         } catch {
-          batch.forEach(s => allFailed.push(s));
+          batch.forEach((s) => allFailed.push(s));
         }
       }
 
       if (allFailed.length > 0 && retryCountRef.current < MAX_RETRIES) {
-        allFailed.forEach(s => fetchedRef.current.delete(s));
+        allFailed.forEach((s) => fetchedRef.current.delete(s));
         retryCountRef.current++;
-        setTimeout(() => setRetryTick(t => t + 1), 2000);
+        setTimeout(() => setRetryTick((t) => t + 1), 2000);
       }
     };
 

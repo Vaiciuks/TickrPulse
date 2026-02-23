@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 function timeAgo(unixTimestamp) {
   const seconds = Math.floor(Date.now() / 1000 - unixTimestamp);
@@ -16,15 +16,25 @@ export default function NewsPopover({ articles, onClose }) {
         onClose();
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
   return (
-    <div className="news-popover" ref={ref} onClick={e => e.stopPropagation()}>
+    <div
+      className="news-popover"
+      ref={ref}
+      onClick={(e) => e.stopPropagation()}
+    >
       <div className="news-popover-header">
         <span className="news-popover-title">Recent News</span>
-        <button className="news-popover-close" onClick={onClose} aria-label="Close news">&times;</button>
+        <button
+          className="news-popover-close"
+          onClick={onClose}
+          aria-label="Close news"
+        >
+          &times;
+        </button>
       </div>
       {(articles || []).map((article, i) => (
         <a

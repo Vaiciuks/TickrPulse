@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 export function useEarningsLookup(symbol) {
   const [data, setData] = useState(null);
@@ -25,17 +25,17 @@ export function useEarningsLookup(symbol) {
     fetch(`/api/earnings-lookup/${encodeURIComponent(symbol)}`, {
       signal: controller.signal,
     })
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then(json => {
+      .then((json) => {
         if (!controller.signal.aborted) {
           setData(json);
           setLoading(false);
         }
       })
-      .catch(err => {
+      .catch((err) => {
         if (!controller.signal.aborted) {
           setError(err.message);
           setLoading(false);

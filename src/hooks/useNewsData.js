@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const CHUNK_SIZE = 50;
 
@@ -15,20 +15,20 @@ export function useNewsData(symbols) {
   const fetchedRef = useRef(new Set());
 
   useEffect(() => {
-    const missing = symbols.filter(s => !fetchedRef.current.has(s));
+    const missing = symbols.filter((s) => !fetchedRef.current.has(s));
     if (missing.length === 0) return;
 
-    missing.forEach(s => fetchedRef.current.add(s));
+    missing.forEach((s) => fetchedRef.current.add(s));
 
     const fetchAll = async () => {
       const chunks_ = chunk(missing, CHUNK_SIZE);
       for (const batch of chunks_) {
         try {
-          const params = new URLSearchParams({ symbols: batch.join(',') });
+          const params = new URLSearchParams({ symbols: batch.join(",") });
           const res = await fetch(`/api/news?${params}`);
           if (!res.ok) continue;
           const json = await res.json();
-          setNewsMap(prev => ({ ...prev, ...json.news }));
+          setNewsMap((prev) => ({ ...prev, ...json.news }));
         } catch {
           // Silently ignore — news is non-critical
         }
@@ -40,13 +40,10 @@ export function useNewsData(symbols) {
 
   const hasNews = useCallback(
     (symbol) => (newsMap[symbol]?.length || 0) > 0,
-    [newsMap]
+    [newsMap],
   );
 
-  const getNews = useCallback(
-    (symbol) => newsMap[symbol] || [],
-    [newsMap]
-  );
+  const getNews = useCallback((symbol) => newsMap[symbol] || [], [newsMap]);
 
   return { newsMap, hasNews, getNews };
 }

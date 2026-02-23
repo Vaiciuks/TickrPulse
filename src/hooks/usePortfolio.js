@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { QUOTE_POLL_MS } from '../utils/constants.js';
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { QUOTE_POLL_MS } from "../utils/constants.js";
 
-const STORAGE_KEY = 'tickrpulse-portfolio';
+const STORAGE_KEY = "tickrpulse-portfolio";
 
 function loadPositions() {
   try {
@@ -24,15 +24,17 @@ export function usePortfolio() {
   const pollRef = useRef(null);
 
   // Fetch live prices for all held symbols
-  const symbols = useMemo(() => positions.map(p => p.symbol), [positions]);
+  const symbols = useMemo(() => positions.map((p) => p.symbol), [positions]);
 
   const fetchQuotes = useCallback(async (syms) => {
     if (syms.length === 0) return;
     try {
-      const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(syms.join(','))}`);
+      const res = await fetch(
+        `/api/quotes?symbols=${encodeURIComponent(syms.join(","))}`,
+      );
       if (!res.ok) return;
       const quotes = await res.json();
-      setLiveQuotes(prev => ({ ...prev, ...quotes }));
+      setLiveQuotes((prev) => ({ ...prev, ...quotes }));
     } catch {
       // ignore
     }
@@ -47,19 +49,33 @@ export function usePortfolio() {
     fetchQuotes(symbols);
     pollRef.current = setInterval(() => fetchQuotes(symbols), QUOTE_POLL_MS);
     return () => clearInterval(pollRef.current);
-  }, [symbols.join(','), fetchQuotes]);
+  }, [symbols.join(","), fetchQuotes]);
 
   const addPosition = useCallback((symbol, shares, avgCost, name) => {
-    setPositions(prev => {
-      const existing = prev.find(p => p.symbol === symbol);
+    setPositions((prev) => {
+      const existing = prev.find((p) => p.symbol === symbol);
       let next;
       if (existing) {
         // Merge: weighted average cost
         const totalShares = existing.shares + shares;
-        const newAvgCost = (existing.shares * existing.avgCost + shares * avgCost) / totalShares;
-        next = prev.map(p => p.symbol === symbol ? { ...p, shares: totalShares, avgCost: newAvgCost } : p);
+        const newAvgCost =
+          (existing.shares * existing.avgCost + shares * avgCost) / totalShares;
+        next = prev.map((p) =>
+          p.symbol === symbol
+            ? { ...p, shares: totalShares, avgCost: newAvgCost }
+            : p,
+        );
       } else {
-        next = [...prev, { symbol, shares, avgCost, name: name || symbol, addedAt: Date.now() }];
+        next = [
+          ...prev,
+          {
+            symbol,
+            shares,
+            avgCost,
+            name: name || symbol,
+            addedAt: Date.now(),
+          },
+        ];
       }
       savePositions(next);
       return next;
@@ -67,16 +83,18 @@ export function usePortfolio() {
   }, []);
 
   const removePosition = useCallback((symbol) => {
-    setPositions(prev => {
-      const next = prev.filter(p => p.symbol !== symbol);
+    setPositions((prev) => {
+      const next = prev.filter((p) => p.symbol !== symbol);
       savePositions(next);
       return next;
     });
   }, []);
 
   const editPosition = useCallback((symbol, shares, avgCost) => {
-    setPositions(prev => {
-      const next = prev.map(p => p.symbol === symbol ? { ...p, shares, avgCost } : p);
+    setPositions((prev) => {
+      const next = prev.map((p) =>
+        p.symbol === symbol ? { ...p, shares, avgCost } : p,
+      );
       savePositions(next);
       return next;
     });
@@ -84,7 +102,7 @@ export function usePortfolio() {
 
   // Merge live quotes into positions
   const holdings = useMemo(() => {
-    return positions.map(p => {
+    return positions.map((p) => {
       const q = liveQuotes[p.symbol];
       const price = q?.price ?? null;
       const change = q?.change ?? 0;
@@ -92,7 +110,8 @@ export function usePortfolio() {
       const marketValue = price != null ? price * p.shares : null;
       const costBasis = p.avgCost * p.shares;
       const pl = marketValue != null ? marketValue - costBasis : null;
-      const plPercent = costBasis > 0 && pl != null ? (pl / costBasis) * 100 : null;
+      const plPercent =
+        costBasis > 0 && pl != null ? (pl / costBasis) * 100 : null;
       const dayPL = price != null ? change * p.shares : null;
       return {
         ...p,
@@ -125,8 +144,12 @@ export function usePortfolio() {
     }
 
     const totalPL = hasPrice ? totalValue - totalCost : null;
-    const totalPLPercent = totalCost > 0 && totalPL != null ? (totalPL / totalCost) * 100 : null;
-    const dayChangePercent = totalValue > 0 ? (totalDayChange / (totalValue - totalDayChange)) * 100 : null;
+    const totalPLPercent =
+      totalCost > 0 && totalPL != null ? (totalPL / totalCost) * 100 : null;
+    const dayChangePercent =
+      totalValue > 0
+        ? (totalDayChange / (totalValue - totalDayChange)) * 100
+        : null;
 
     return {
       totalValue: hasPrice ? totalValue : null,
