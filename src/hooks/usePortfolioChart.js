@@ -63,7 +63,7 @@ export function usePortfolioChart(holdings, timeframe) {
             symbols: batch.join(","),
             range: tf.range,
             interval: tf.interval,
-            prepost: "false",
+            prepost: "true",
           });
           const res = await fetch(`/api/charts?${params}`, {
             signal: controller.signal,

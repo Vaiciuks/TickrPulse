@@ -4,6 +4,7 @@ import { formatPrice } from "../utils/formatters.js";
 import { useMediaQuery } from "../hooks/useMediaQuery.js";
 import { useScrollLock } from "../hooks/useScrollLock.js";
 import { usePortfolioChart } from "../hooks/usePortfolioChart.js";
+import { useAnimatedNumber } from "../hooks/useAnimatedNumber.js";
 import StockLogo from "./StockLogo.jsx";
 
 const ALLOCATION_COLORS = [
@@ -23,6 +24,15 @@ const ALLOCATION_COLORS = [
   "#40c4ff",
   "#ffab40",
 ];
+
+function hideWatermark(container) {
+  requestAnimationFrame(() => {
+    const el = container.querySelector('a[href*="tradingview"]');
+    if (el)
+      el.style.cssText =
+        "position:absolute !important; left:8px !important; right:auto !important; bottom:4px !important; top:auto !important; opacity:0.08 !important; font-size:9px !important; z-index:1 !important;";
+  });
+}
 
 export default function Portfolio({
   holdings,
@@ -63,6 +73,14 @@ export default function Portfolio({
     holdings,
     chartTimeframe,
   );
+
+  // Animated summary values
+  const animTotalValue = useAnimatedNumber(totalValue ?? 0);
+  const animTotalCost = useAnimatedNumber(totalCost ?? 0);
+  const animTotalPL = useAnimatedNumber(totalPL ?? 0);
+  const animTotalPLPercent = useAnimatedNumber(totalPLPercent ?? 0);
+  const animDayChange = useAnimatedNumber(dayChange ?? 0);
+  const animDayChangePercent = useAnimatedNumber(dayChangePercent ?? 0);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -289,8 +307,7 @@ export default function Portfolio({
         minBarSpacing: 1,
       },
       rightPriceScale: {
-        borderColor: "transparent",
-        scaleMargins: { top: 0.1, bottom: 0.05 },
+        visible: false,
       },
       handleScroll: { vertTouchDrag: false },
       handleScale: { mouseWheel: false, pinch: false },
@@ -322,6 +339,7 @@ export default function Portfolio({
 
     series.setData(chartData);
     chart.timeScale().fitContent();
+    hideWatermark(container);
 
     chart.subscribeCrosshairMove((param) => {
       if (!param.time || !param.seriesData.has(series)) {
@@ -362,23 +380,23 @@ export default function Portfolio({
           <span className="pf-stat-label">Total Value</span>
           <span className="pf-stat-value">
             {totalValue != null
-              ? `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              ? `$${animTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : "—"}
           </span>
         </div>
         <div className="pf-stat-card">
           <span className="pf-stat-label">Cost Basis</span>
-          <span className="pf-stat-value">{`$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
+          <span className="pf-stat-value">{`$${animTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</span>
         </div>
         <div className="pf-stat-card">
           <span className="pf-stat-label">Total P&L</span>
           <span
             className={`pf-stat-value ${totalPL != null ? (totalPL >= 0 ? "pf-up" : "pf-down") : ""}`}
           >
-            {fmtDollar(totalPL)}{" "}
+            {fmtDollar(animTotalPL)}{" "}
             {totalPLPercent != null && (
               <span className="pf-stat-pct">
-                ({fmtPercent(totalPLPercent)})
+                ({fmtPercent(animTotalPLPercent)})
               </span>
             )}
           </span>
@@ -388,10 +406,10 @@ export default function Portfolio({
           <span
             className={`pf-stat-value ${dayChange !== 0 ? (dayChange >= 0 ? "pf-up" : "pf-down") : ""}`}
           >
-            {fmtDollar(dayChange)}{" "}
+            {fmtDollar(animDayChange)}{" "}
             {dayChangePercent != null && (
               <span className="pf-stat-pct">
-                ({fmtPercent(dayChangePercent)})
+                ({fmtPercent(animDayChangePercent)})
               </span>
             )}
           </span>
@@ -404,7 +422,7 @@ export default function Portfolio({
           <div className="pf-chart-header">
             <div className="pf-chart-value">
               {(hoverValue != null ? hoverValue : totalValue) != null
-                ? `$${(hoverValue != null ? hoverValue : totalValue).toLocaleString(
+                ? `$${(hoverValue != null ? hoverValue : animTotalValue).toLocaleString(
                     undefined,
                     { minimumFractionDigits: 2, maximumFractionDigits: 2 },
                   )}`
@@ -414,7 +432,7 @@ export default function Portfolio({
               <span
                 className={`pf-chart-change ${totalPL >= 0 ? "pf-up" : "pf-down"}`}
               >
-                {fmtDollar(totalPL)} ({fmtPercent(totalPLPercent)})
+                {fmtDollar(animTotalPL)} ({fmtPercent(animTotalPLPercent)})
               </span>
             )}
           </div>
