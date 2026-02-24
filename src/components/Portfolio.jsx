@@ -34,6 +34,106 @@ function hideWatermark(container) {
   });
 }
 
+function MobileEditModal({
+  holding,
+  editShares,
+  editCost,
+  onSharesChange,
+  onCostChange,
+  onSave,
+  onCancel,
+}) {
+  const overlayRef = useRef(null);
+
+  // Track visualViewport so modal stays above the soft keyboard
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !overlayRef.current) return;
+
+    const update = () => {
+      const el = overlayRef.current;
+      if (!el) return;
+      el.style.height = `${vv.height}px`;
+      el.style.top = `${vv.offsetTop}px`;
+    };
+
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return (
+    <div
+      className="pf-edit-overlay"
+      ref={overlayRef}
+      onClick={onCancel}
+    >
+      <div
+        className="pf-edit-sheet"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="pf-edit-sheet-header">
+          <div className="pf-edit-sheet-symbol">
+            <StockLogo symbol={holding.symbol} size={28} />
+            <div>
+              <div className="pf-edit-sheet-sym">{holding.symbol}</div>
+              <div className="pf-edit-sheet-name">{holding.name}</div>
+            </div>
+          </div>
+          <button className="pf-edit-sheet-close" onClick={onCancel}>
+            &#10005;
+          </button>
+        </div>
+        <div className="pf-edit-sheet-fields">
+          <label className="pf-edit-sheet-label">
+            Shares
+            <input
+              className="pf-edit-sheet-input"
+              type="number"
+              value={editShares}
+              onChange={(e) => onSharesChange(e.target.value)}
+              min="0"
+              step="any"
+              inputMode="decimal"
+              autoFocus
+            />
+          </label>
+          <label className="pf-edit-sheet-label">
+            Avg Cost
+            <input
+              className="pf-edit-sheet-input"
+              type="number"
+              value={editCost}
+              onChange={(e) => onCostChange(e.target.value)}
+              min="0"
+              step="any"
+              inputMode="decimal"
+            />
+          </label>
+        </div>
+        <div className="pf-edit-sheet-actions">
+          <button
+            className="pf-edit-sheet-btn pf-edit-sheet-cancel"
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+          <button
+            className="pf-edit-sheet-btn pf-edit-sheet-save"
+            onClick={onSave}
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Portfolio({
   holdings,
   addPosition,
@@ -64,15 +164,39 @@ export default function Portfolio({
   useScrollLock(isMobile && editingSymbol !== null);
 
   // Portfolio chart
-  const [chartTimeframe, setChartTimeframe] = useState("1M");
+  const [chartTimeframe, setChartTimeframe] = useState("1D");
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
   const [hoverValue, setHoverValue] = useState(null);
+
+  // Price flash animation (matches StockCard pattern)
+  const prevValueRef = useRef(totalValue);
+  const [flash, setFlash] = useState(null);
   const { data: chartData, loading: chartLoading } = usePortfolioChart(
     holdings,
     chartTimeframe,
   );
+
+  // Extended hours totals for chart display
+  const extInfo = useMemo(() => {
+    const first = holdings.find((h) => h.extMarketState != null);
+    if (!first) return null;
+    const state = first.extMarketState; // "pre" or "post"
+    let extTotalValue = 0;
+    let regTotalValue = 0;
+    let hasExt = false;
+    for (const h of holdings) {
+      if (h.price != null) extTotalValue += h.price * h.shares;
+      if (h.regPrice != null) regTotalValue += h.regPrice * h.shares;
+      if (h.extChangePercent != null) hasExt = true;
+    }
+    if (!hasExt) return null;
+    const extDollarChange = extTotalValue - regTotalValue;
+    const extPctChange =
+      regTotalValue > 0 ? (extDollarChange / regTotalValue) * 100 : 0;
+    return { state, extDollarChange, extPctChange };
+  }, [holdings]);
 
   // Animated summary values
   const animTotalValue = useAnimatedNumber(totalValue ?? 0);
@@ -81,6 +205,20 @@ export default function Portfolio({
   const animTotalPLPercent = useAnimatedNumber(totalPLPercent ?? 0);
   const animDayChange = useAnimatedNumber(dayChange ?? 0);
   const animDayChangePercent = useAnimatedNumber(dayChangePercent ?? 0);
+  const animExtDollar = useAnimatedNumber(extInfo?.extDollarChange ?? 0);
+  const animExtPct = useAnimatedNumber(extInfo?.extPctChange ?? 0);
+
+  // Flash on total value change
+  useEffect(() => {
+    const prev = prevValueRef.current;
+    if (prev != null && totalValue != null && totalValue !== prev) {
+      setFlash(totalValue > prev ? "pf-flash-up" : "pf-flash-down");
+      const timer = setTimeout(() => setFlash(null), 700);
+      prevValueRef.current = totalValue;
+      return () => clearTimeout(timer);
+    }
+    prevValueRef.current = totalValue;
+  }, [totalValue]);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -285,7 +423,7 @@ export default function Portfolio({
         horzLines: { color: colors.grid },
       },
       crosshair: {
-        mode: CrosshairMode.Magnet,
+        mode: CrosshairMode.Normal,
         vertLine: {
           color: colors.crosshair,
           width: 1,
@@ -376,9 +514,9 @@ export default function Portfolio({
 
       {/* Summary bar */}
       <div className="pf-summary-bar">
-        <div className="pf-stat-card">
+        <div className={`pf-stat-card ${flash || ""}`}>
           <span className="pf-stat-label">Total Value</span>
-          <span className="pf-stat-value">
+          <span className={`pf-stat-value ${flash || ""}`}>
             {totalValue != null
               ? `$${animTotalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : "—"}
@@ -413,6 +551,16 @@ export default function Portfolio({
               </span>
             )}
           </span>
+          {extInfo && (
+            <span
+              className={`pf-stat-ext ${extInfo.extDollarChange >= 0 ? "pf-up" : "pf-down"}`}
+            >
+              <span className="pf-ext-label">
+                {extInfo.state === "pre" ? "PM" : "AH"}
+              </span>{" "}
+              {fmtDollar(animExtDollar)} ({fmtPercent(animExtPct)})
+            </span>
+          )}
         </div>
       </div>
 
@@ -420,20 +568,43 @@ export default function Portfolio({
       {holdings.length > 0 && (
         <div className="pf-chart-section">
           <div className="pf-chart-header">
-            <div className="pf-chart-value">
+            <div className={`pf-chart-value ${hoverValue == null && flash ? flash : ""}`}>
               {(hoverValue != null ? hoverValue : totalValue) != null
                 ? `$${(hoverValue != null ? hoverValue : animTotalValue).toLocaleString(
                     undefined,
                     { minimumFractionDigits: 2, maximumFractionDigits: 2 },
                   )}`
                 : "—"}
+              {extInfo && (
+                <span
+                  className="pf-chart-market-badge"
+                  style={{ visibility: hoverValue != null ? "hidden" : "visible" }}
+                >
+                  {extInfo.state === "pre" ? "Pre-Market" : "After Hours"}
+                </span>
+              )}
             </div>
-            {hoverValue == null && totalPL != null && (
-              <span
-                className={`pf-chart-change ${totalPL >= 0 ? "pf-up" : "pf-down"}`}
+            {totalPL != null && (
+              <div
+                className="pf-chart-changes"
+                style={{ visibility: hoverValue != null ? "hidden" : "visible" }}
               >
-                {fmtDollar(animTotalPL)} ({fmtPercent(animTotalPLPercent)})
-              </span>
+                <span
+                  className={`pf-chart-change ${totalPL >= 0 ? "pf-up" : "pf-down"}`}
+                >
+                  {fmtDollar(animTotalPL)} ({fmtPercent(animTotalPLPercent)})
+                </span>
+                {extInfo && (
+                  <span
+                    className={`pf-chart-ext-change ${extInfo.extDollarChange >= 0 ? "pf-up" : "pf-down"}`}
+                  >
+                    <span className="pf-chart-ext-label">
+                      {extInfo.state === "pre" ? "PM" : "AH"}
+                    </span>
+                    {fmtDollar(animExtDollar)} ({fmtPercent(animExtPct)})
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <div className="pf-chart-container" ref={chartContainerRef}>
@@ -729,18 +900,24 @@ export default function Portfolio({
                       </td>
                       <td className="pf-td pf-td-num">
                         <span
-                          className={
-                            (h.extChangePercent != null ? h.extChangePercent : h.changePercent) >= 0
-                              ? "pf-up"
-                              : "pf-down"
-                          }
+                          className={h.changePercent >= 0 ? "pf-up" : "pf-down"}
                         >
-                          {fmtPercent(
-                            h.extChangePercent != null
-                              ? h.extChangePercent
-                              : h.changePercent,
-                          )}
+                          {fmtPercent(h.changePercent)}
                         </span>
+                        {h.extChangePercent != null && (
+                          <div className="pf-ext-line">
+                            <span className="pf-ext-label">
+                              {h.extMarketState === "pre" ? "PM" : "AH"}
+                            </span>
+                            <span
+                              className={
+                                h.extChangePercent >= 0 ? "pf-up" : "pf-down"
+                              }
+                            >
+                              {fmtPercent(h.extChangePercent)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="pf-td pf-td-num">
                         <span
@@ -804,18 +981,24 @@ export default function Portfolio({
                       </td>
                       <td className="pf-td pf-td-num">
                         <span
-                          className={
-                            (h.extChangePercent != null ? h.extChangePercent : h.changePercent) >= 0
-                              ? "pf-up"
-                              : "pf-down"
-                          }
+                          className={h.changePercent >= 0 ? "pf-up" : "pf-down"}
                         >
-                          {fmtPercent(
-                            h.extChangePercent != null
-                              ? h.extChangePercent
-                              : h.changePercent,
-                          )}
+                          {fmtPercent(h.changePercent)}
                         </span>
+                        {h.extChangePercent != null && (
+                          <div className="pf-ext-line">
+                            <span className="pf-ext-label">
+                              {h.extMarketState === "pre" ? "PM" : "AH"}
+                            </span>
+                            <span
+                              className={
+                                h.extChangePercent >= 0 ? "pf-up" : "pf-down"
+                              }
+                            >
+                              {fmtPercent(h.extChangePercent)}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="pf-td pf-td-num">
                         <span
@@ -939,27 +1122,29 @@ export default function Portfolio({
                   </span>
                 </div>
                 <div className="pf-card-cell">
-                  <span className="pf-card-label">
-                    {h.extMarketState === "post"
-                      ? "AH"
-                      : h.extMarketState === "pre"
-                        ? "PM"
-                        : "Day"}
-                  </span>
+                  <span className="pf-card-label">Day</span>
                   <span
                     className={
-                      (h.extChangePercent != null ? h.extChangePercent : h.changePercent) >= 0
-                        ? "pf-up"
-                        : "pf-down"
+                      h.changePercent >= 0 ? "pf-up" : "pf-down"
                     }
                   >
-                    {fmtPercent(
-                      h.extChangePercent != null
-                        ? h.extChangePercent
-                        : h.changePercent,
-                    )}
+                    {fmtPercent(h.changePercent)}
                   </span>
                 </div>
+                {h.extChangePercent != null && (
+                  <div className="pf-card-cell">
+                    <span className="pf-card-label">
+                      {h.extMarketState === "pre" ? "PM" : "AH"}
+                    </span>
+                    <span
+                      className={
+                        h.extChangePercent >= 0 ? "pf-up" : "pf-down"
+                      }
+                    >
+                      {fmtPercent(h.extChangePercent)}
+                    </span>
+                  </div>
+                )}
                 <div className="pf-card-cell">
                   <span className="pf-card-label">P&L</span>
                   <span
@@ -976,73 +1161,17 @@ export default function Portfolio({
         </div>
       )}
 
-      {/* Mobile edit bottom sheet */}
+      {/* Mobile edit modal */}
       {isMobile && editingSymbol && editingHolding && (
-        <div className="pf-edit-overlay" onClick={handleCancelEdit}>
-          <div
-            className="pf-edit-sheet"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="pf-edit-sheet-header">
-              <div className="pf-edit-sheet-symbol">
-                <StockLogo symbol={editingHolding.symbol} size={28} />
-                <div>
-                  <div className="pf-edit-sheet-sym">
-                    {editingHolding.symbol}
-                  </div>
-                  <div className="pf-edit-sheet-name">
-                    {editingHolding.name}
-                  </div>
-                </div>
-              </div>
-              <button
-                className="pf-edit-sheet-close"
-                onClick={handleCancelEdit}
-              >
-                &#10005;
-              </button>
-            </div>
-            <div className="pf-edit-sheet-fields">
-              <label className="pf-edit-sheet-label">
-                Shares
-                <input
-                  className="pf-edit-sheet-input"
-                  type="number"
-                  value={editShares}
-                  onChange={(e) => setEditShares(e.target.value)}
-                  min="0"
-                  step="any"
-                  autoFocus
-                />
-              </label>
-              <label className="pf-edit-sheet-label">
-                Avg Cost
-                <input
-                  className="pf-edit-sheet-input"
-                  type="number"
-                  value={editCost}
-                  onChange={(e) => setEditCost(e.target.value)}
-                  min="0"
-                  step="any"
-                />
-              </label>
-            </div>
-            <div className="pf-edit-sheet-actions">
-              <button
-                className="pf-edit-sheet-btn pf-edit-sheet-cancel"
-                onClick={handleCancelEdit}
-              >
-                Cancel
-              </button>
-              <button
-                className="pf-edit-sheet-btn pf-edit-sheet-save"
-                onClick={handleSaveEdit}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
+        <MobileEditModal
+          holding={editingHolding}
+          editShares={editShares}
+          editCost={editCost}
+          onSharesChange={setEditShares}
+          onCostChange={setEditCost}
+          onSave={handleSaveEdit}
+          onCancel={handleCancelEdit}
+        />
       )}
     </main>
   );
