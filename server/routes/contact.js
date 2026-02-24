@@ -1,28 +1,9 @@
 import { Router } from 'express';
-import nodemailer from 'nodemailer';
-import dns from 'dns';
-
-// Force IPv4 DNS resolution — Railway can't reach Gmail over IPv6
-dns.setDefaultResultOrder('ipv4first');
 
 const router = Router();
 
 const RECIPIENT = 'tickrview@gmail.com';
-
-// Configure transporter — uses Gmail SMTP with App Password
-// Set GMAIL_USER and GMAIL_APP_PASSWORD in your .env file
-const transporter = process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD
-  ? nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-    })
-  : null;
+const RESEND_API = 'https://api.resend.com/emails';
 
 // Rate limiting: max 3 submissions per IP per hour
 const rateMap = new Map();
@@ -70,28 +51,41 @@ router.post('/', async (req, res) => {
     return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
   }
 
-  if (!transporter) {
+  if (!process.env.RESEND_API_KEY) {
     console.log('[contact] Email not configured. Message from:', name, email);
     console.log('[contact] Message:', message);
     return res.json({ success: true, note: 'Message logged (email not configured).' });
   }
 
   try {
-    await transporter.sendMail({
-      from: `"TickrView Contact" <${process.env.GMAIL_USER}>`,
-      to: RECIPIENT,
-      replyTo: email,
-      subject: `TickrView Contact: ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px;">
-          <h2 style="color: #00c853;">TickrView Contact Form</h2>
-          <p><strong>From:</strong> ${name} (${email})</p>
-          <hr style="border: 1px solid #333;" />
-          <p style="white-space: pre-wrap;">${message}</p>
-        </div>
-      `,
+    const response = await fetch(RESEND_API, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'TickrView Contact <onboarding@resend.dev>',
+        to: RECIPIENT,
+        reply_to: email,
+        subject: `TickrView Contact: ${name}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px;">
+            <h2 style="color: #00c853;">TickrView Contact Form</h2>
+            <p><strong>From:</strong> ${name} (${email})</p>
+            <hr style="border: 1px solid #333;" />
+            <p style="white-space: pre-wrap;">${message}</p>
+          </div>
+        `,
+      }),
     });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error('[contact] Resend error:', err);
+      return res.status(500).json({ error: 'Failed to send message. Please try again.' });
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error('[contact] Failed to send email:', err.message);
