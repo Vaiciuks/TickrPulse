@@ -11380,6 +11380,15 @@ textarea {
   font-size: 13px;
   width: 80px;
   outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.pf-edit-input::-webkit-inner-spin-button,
+.pf-edit-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
 }
 
 /* Empty state */
@@ -11740,6 +11749,18 @@ textarea {
 
 .pf-edit-sheet-input:focus {
   border-color: var(--accent-cyan, #00e5ff);
+}
+
+.pf-edit-sheet-input::-webkit-inner-spin-button,
+.pf-edit-sheet-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+.pf-edit-sheet-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .pf-edit-sheet-actions {

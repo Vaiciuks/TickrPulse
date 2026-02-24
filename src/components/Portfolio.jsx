@@ -729,9 +729,17 @@ export default function Portfolio({
                       </td>
                       <td className="pf-td pf-td-num">
                         <span
-                          className={h.changePercent >= 0 ? "pf-up" : "pf-down"}
+                          className={
+                            (h.extChangePercent != null ? h.extChangePercent : h.changePercent) >= 0
+                              ? "pf-up"
+                              : "pf-down"
+                          }
                         >
-                          {fmtPercent(h.changePercent)}
+                          {fmtPercent(
+                            h.extChangePercent != null
+                              ? h.extChangePercent
+                              : h.changePercent,
+                          )}
                         </span>
                       </td>
                       <td className="pf-td pf-td-num">
@@ -796,9 +804,17 @@ export default function Portfolio({
                       </td>
                       <td className="pf-td pf-td-num">
                         <span
-                          className={h.changePercent >= 0 ? "pf-up" : "pf-down"}
+                          className={
+                            (h.extChangePercent != null ? h.extChangePercent : h.changePercent) >= 0
+                              ? "pf-up"
+                              : "pf-down"
+                          }
                         >
-                          {fmtPercent(h.changePercent)}
+                          {fmtPercent(
+                            h.extChangePercent != null
+                              ? h.extChangePercent
+                              : h.changePercent,
+                          )}
                         </span>
                       </td>
                       <td className="pf-td pf-td-num">
@@ -923,9 +939,25 @@ export default function Portfolio({
                   </span>
                 </div>
                 <div className="pf-card-cell">
-                  <span className="pf-card-label">Day</span>
-                  <span className={h.changePercent >= 0 ? "pf-up" : "pf-down"}>
-                    {fmtPercent(h.changePercent)}
+                  <span className="pf-card-label">
+                    {h.extMarketState === "post"
+                      ? "AH"
+                      : h.extMarketState === "pre"
+                        ? "PM"
+                        : "Day"}
+                  </span>
+                  <span
+                    className={
+                      (h.extChangePercent != null ? h.extChangePercent : h.changePercent) >= 0
+                        ? "pf-up"
+                        : "pf-down"
+                    }
+                  >
+                    {fmtPercent(
+                      h.extChangePercent != null
+                        ? h.extChangePercent
+                        : h.changePercent,
+                    )}
                   </span>
                 </div>
                 <div className="pf-card-cell">

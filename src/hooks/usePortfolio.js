@@ -100,24 +100,34 @@ export function usePortfolio() {
     });
   }, []);
 
-  // Merge live quotes into positions
+  // Merge live quotes into positions — use extended hours price when available
   const holdings = useMemo(() => {
     return positions.map((p) => {
       const q = liveQuotes[p.symbol];
-      const price = q?.price ?? null;
+      const regPrice = q?.price ?? null;
+      // Use extended hours price if available, otherwise regular
+      const livePrice =
+        q?.extPrice != null ? q.extPrice : regPrice;
       const change = q?.change ?? 0;
       const changePercent = q?.changePercent ?? 0;
-      const marketValue = price != null ? price * p.shares : null;
+      const extChange = q?.extChange ?? null;
+      const extChangePercent = q?.extChangePercent ?? null;
+      const extMarketState = q?.extMarketState ?? null;
+      const marketValue = livePrice != null ? livePrice * p.shares : null;
       const costBasis = p.avgCost * p.shares;
       const pl = marketValue != null ? marketValue - costBasis : null;
       const plPercent =
         costBasis > 0 && pl != null ? (pl / costBasis) * 100 : null;
-      const dayPL = price != null ? change * p.shares : null;
+      const dayPL = regPrice != null ? change * p.shares : null;
       return {
         ...p,
-        price,
+        price: livePrice,
+        regPrice,
         change,
         changePercent,
+        extChange,
+        extChangePercent,
+        extMarketState,
         marketValue,
         costBasis,
         pl,
