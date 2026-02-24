@@ -1,5 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { createChart, ColorType, CrosshairMode } from "lightweight-charts";
 import { formatPrice } from "../utils/formatters.js";
+import { useMediaQuery } from "../hooks/useMediaQuery.js";
+import { useScrollLock } from "../hooks/useScrollLock.js";
+import { usePortfolioChart } from "../hooks/usePortfolioChart.js";
 import StockLogo from "./StockLogo.jsx";
 
 const ALLOCATION_COLORS = [
@@ -46,6 +50,19 @@ export default function Portfolio({
   const [sortDir, setSortDir] = useState("desc");
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  useScrollLock(isMobile && editingSymbol !== null);
+
+  // Portfolio chart
+  const [chartTimeframe, setChartTimeframe] = useState("1M");
+  const chartContainerRef = useRef(null);
+  const chartRef = useRef(null);
+  const seriesRef = useRef(null);
+  const [hoverValue, setHoverValue] = useState(null);
+  const { data: chartData, loading: chartLoading } = usePortfolioChart(
+    holdings,
+    chartTimeframe,
+  );
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -199,6 +216,140 @@ export default function Portfolio({
     return `${sign}${v.toFixed(2)}%`;
   };
 
+  const editingHolding = editingSymbol
+    ? holdings.find((h) => h.symbol === editingSymbol)
+    : null;
+
+  // ── Portfolio performance chart ──
+  const getChartColors = useCallback(() => {
+    const isDark =
+      document.documentElement.getAttribute("data-theme") !== "light";
+    return {
+      bg: "transparent",
+      grid: isDark ? "rgba(255,255,255,0.015)" : "rgba(0,0,0,0.03)",
+      text: isDark ? "#555" : "#aaa",
+      crosshair: isDark ? "rgba(0, 229, 255, 0.25)" : "rgba(0, 0, 0, 0.15)",
+      crosshairLabel: isDark ? "#1a1a28" : "#e0e0e8",
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!chartContainerRef.current || chartData.length === 0) {
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+        seriesRef.current = null;
+      }
+      return;
+    }
+
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    }
+
+    const colors = getChartColors();
+    const container = chartContainerRef.current;
+    const chartHeight = isMobile ? 200 : 260;
+
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: chartHeight,
+      layout: {
+        background: { type: ColorType.Solid, color: colors.bg },
+        textColor: colors.text,
+        fontFamily: "'SF Mono', 'Fira Code', 'Consolas', monospace",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: colors.grid },
+        horzLines: { color: colors.grid },
+      },
+      crosshair: {
+        mode: CrosshairMode.Magnet,
+        vertLine: {
+          color: colors.crosshair,
+          width: 1,
+          style: 2,
+          labelBackgroundColor: colors.crosshairLabel,
+        },
+        horzLine: {
+          color: colors.crosshair,
+          width: 1,
+          style: 2,
+          labelBackgroundColor: colors.crosshairLabel,
+        },
+      },
+      timeScale: {
+        borderColor: "transparent",
+        timeVisible: chartTimeframe === "1D" || chartTimeframe === "1W",
+        secondsVisible: false,
+        barSpacing: 6,
+        minBarSpacing: 1,
+      },
+      rightPriceScale: {
+        borderColor: "transparent",
+        scaleMargins: { top: 0.1, bottom: 0.05 },
+      },
+      handleScroll: { vertTouchDrag: false },
+      handleScale: { mouseWheel: false, pinch: false },
+    });
+
+    const firstVal = chartData[0].value;
+    const lastVal = chartData[chartData.length - 1].value;
+    const isGain = lastVal >= firstVal;
+    const lineColor = isGain ? "#00d66b" : "#ff2952";
+    const topColor = isGain
+      ? "rgba(0, 214, 107, 0.18)"
+      : "rgba(255, 41, 82, 0.18)";
+    const bottomColor = isGain
+      ? "rgba(0, 214, 107, 0.01)"
+      : "rgba(255, 41, 82, 0.01)";
+
+    const series = chart.addAreaSeries({
+      lineColor,
+      topColor,
+      bottomColor,
+      lineWidth: 2,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+      crosshairMarkerBorderColor: lineColor,
+      crosshairMarkerBackgroundColor: "#fff",
+    });
+
+    series.setData(chartData);
+    chart.timeScale().fitContent();
+
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time || !param.seriesData.has(series)) {
+        setHoverValue(null);
+        return;
+      }
+      const point = param.seriesData.get(series);
+      if (point) setHoverValue(point.value);
+    });
+
+    chartRef.current = chart;
+    seriesRef.current = series;
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        chart.applyOptions({ width: entry.contentRect.width });
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      ro.disconnect();
+      chart.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    };
+  }, [chartData, chartTimeframe, getChartColors, isMobile]);
+
   return (
     <main className="portfolio-main">
       <div className="pf-header">
@@ -246,6 +397,45 @@ export default function Portfolio({
           </span>
         </div>
       </div>
+
+      {/* Portfolio performance chart */}
+      {holdings.length > 0 && (
+        <div className="pf-chart-section">
+          <div className="pf-chart-header">
+            <div className="pf-chart-value">
+              {(hoverValue != null ? hoverValue : totalValue) != null
+                ? `$${(hoverValue != null ? hoverValue : totalValue).toLocaleString(
+                    undefined,
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+                  )}`
+                : "—"}
+            </div>
+            {hoverValue == null && totalPL != null && (
+              <span
+                className={`pf-chart-change ${totalPL >= 0 ? "pf-up" : "pf-down"}`}
+              >
+                {fmtDollar(totalPL)} ({fmtPercent(totalPLPercent)})
+              </span>
+            )}
+          </div>
+          <div className="pf-chart-container" ref={chartContainerRef}>
+            {chartLoading && chartData.length === 0 && (
+              <div className="pf-chart-loading">Loading chart...</div>
+            )}
+          </div>
+          <div className="pf-chart-timeframes">
+            {["1D", "1W", "1M", "YTD", "All"].map((tf) => (
+              <button
+                key={tf}
+                className={`pf-tf-btn ${chartTimeframe === tf ? "pf-tf-active" : ""}`}
+                onClick={() => setChartTimeframe(tf)}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Add position form */}
       <form
@@ -733,6 +923,75 @@ export default function Portfolio({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Mobile edit bottom sheet */}
+      {isMobile && editingSymbol && editingHolding && (
+        <div className="pf-edit-overlay" onClick={handleCancelEdit}>
+          <div
+            className="pf-edit-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pf-edit-sheet-header">
+              <div className="pf-edit-sheet-symbol">
+                <StockLogo symbol={editingHolding.symbol} size={28} />
+                <div>
+                  <div className="pf-edit-sheet-sym">
+                    {editingHolding.symbol}
+                  </div>
+                  <div className="pf-edit-sheet-name">
+                    {editingHolding.name}
+                  </div>
+                </div>
+              </div>
+              <button
+                className="pf-edit-sheet-close"
+                onClick={handleCancelEdit}
+              >
+                &#10005;
+              </button>
+            </div>
+            <div className="pf-edit-sheet-fields">
+              <label className="pf-edit-sheet-label">
+                Shares
+                <input
+                  className="pf-edit-sheet-input"
+                  type="number"
+                  value={editShares}
+                  onChange={(e) => setEditShares(e.target.value)}
+                  min="0"
+                  step="any"
+                  autoFocus
+                />
+              </label>
+              <label className="pf-edit-sheet-label">
+                Avg Cost
+                <input
+                  className="pf-edit-sheet-input"
+                  type="number"
+                  value={editCost}
+                  onChange={(e) => setEditCost(e.target.value)}
+                  min="0"
+                  step="any"
+                />
+              </label>
+            </div>
+            <div className="pf-edit-sheet-actions">
+              <button
+                className="pf-edit-sheet-btn pf-edit-sheet-cancel"
+                onClick={handleCancelEdit}
+              >
+                Cancel
+              </button>
+              <button
+                className="pf-edit-sheet-btn pf-edit-sheet-save"
+                onClick={handleSaveEdit}
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>
