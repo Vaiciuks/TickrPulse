@@ -67,6 +67,32 @@ if (process.env.NODE_ENV === 'production') {
       const description = `${stockName} (${upperSymbol}) stock price is $${price} (${changeSign}$${Math.abs(parseFloat(change) || 0).toFixed(2)}, ${changeSign}${changePct}%). View real-time charts, key statistics, insider trading, and more on TickrView.`;
       const url = `https://tickrview.com/stock/${upperSymbol}`;
 
+      // JSON-LD structured data for rich search results
+      const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: title,
+        description: description,
+        url: url,
+        mainEntity: {
+          '@type': 'FinancialProduct',
+          name: `${stockName} (${upperSymbol})`,
+          url: url,
+          offers: {
+            '@type': 'Offer',
+            price: price,
+            priceCurrency: 'USD',
+            priceValidUntil: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          },
+        },
+        provider: {
+          '@type': 'Organization',
+          name: 'TickrView',
+          url: 'https://tickrview.com',
+        },
+      };
+      const jsonLdScript = `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+
       html = html
         .replace(/<title>.*?<\/title>/, `<title>${escapeHtml(title)}</title>`)
         .replace(/<meta name="description" content="[^"]*"/, `<meta name="description" content="${escapeHtml(description)}"`)
@@ -75,7 +101,7 @@ if (process.env.NODE_ENV === 'production') {
         .replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${url}"`)
         .replace(/<meta name="twitter:title" content="[^"]*"/, `<meta name="twitter:title" content="${escapeHtml(title)}"`)
         .replace(/<meta name="twitter:description" content="[^"]*"/, `<meta name="twitter:description" content="${escapeHtml(description)}"`)
-        .replace('</head>', `  <link rel="canonical" href="${url}" />\n  </head>`);
+        .replace('</head>', `  <link rel="canonical" href="${url}" />\n  ${jsonLdScript}\n  </head>`);
 
       stockPageCache.set(upperSymbol, { html, time: now });
 
