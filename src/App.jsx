@@ -28,6 +28,7 @@ import FavoritesGrid from "./components/FavoritesGrid.jsx";
 import SmartMoney from "./components/SmartMoney.jsx";
 import Portfolio from "./components/Portfolio.jsx";
 import Footer from "./components/Footer.jsx";
+import ParticleBackground from "./components/ParticleBackground.jsx";
 import { usePortfolio } from "./hooks/usePortfolio.js";
 
 const TABS = [
@@ -469,6 +470,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <ParticleBackground />
       <Header
         lastUpdated={lastUpdated}
         count={stocks.length}
