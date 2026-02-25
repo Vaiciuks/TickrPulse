@@ -489,7 +489,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-      <div className="app-body">
+      <div className={`app-body${isHome ? "" : " app-body--opaque"}`}>
         <TickerSidebar
           favorites={favorites}
           recentStocks={recentStocks}

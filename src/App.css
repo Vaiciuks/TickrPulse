@@ -275,6 +275,10 @@ textarea {
   flex-direction: column;
 }
 
+.app-body--opaque {
+  background: var(--bg-primary);
+}
+
 /* Header */
 .header {
   position: sticky;
