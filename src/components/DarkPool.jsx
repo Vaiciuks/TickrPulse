@@ -149,7 +149,7 @@ export default function DarkPool({ active, onSelectStock }) {
                 Short %{sortIcon("shortPercent")}
               </th>
               <th>Signal</th>
-              <th className="sm-hide-mobile">Date</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
@@ -185,7 +185,7 @@ export default function DarkPool({ active, onSelectStock }) {
                       </div>
                     </div>
                   </td>
-                  <td className="sm-hide-mobile sm-date">{s.date || "---"}</td>
+                  <td className="sm-date">{s.date || "---"}</td>
                 </tr>
               );
             })}

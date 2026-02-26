@@ -135,11 +135,11 @@ export default function Lobbying({ active, onSelectStock }) {
               </th>
               <th
                 onClick={() => handleSort("clientCount")}
-                className={`sm-hide-mobile${sortCol === "clientCount" ? " sorted" : ""}`}
+                className={sortCol === "clientCount" ? "sorted" : ""}
               >
                 Clients{sortIcon("clientCount")}
               </th>
-              <th className="sm-hide-mobile">Top Issues</th>
+              <th>Top Issues</th>
             </tr>
           </thead>
           <tbody>
@@ -155,8 +155,8 @@ export default function Lobbying({ active, onSelectStock }) {
                   {formatAmount(l.totalSpent)}
                 </td>
                 <td>{l.filingCount}</td>
-                <td className="sm-hide-mobile">{l.clientCount}</td>
-                <td className="sm-hide-mobile sm-issues">
+                <td>{l.clientCount}</td>
+                <td className="sm-issues">
                   {l.topIssues?.join(", ") || "---"}
                 </td>
               </tr>

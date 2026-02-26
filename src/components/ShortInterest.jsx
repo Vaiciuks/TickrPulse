@@ -109,7 +109,7 @@ export default function ShortInterest({ active, onSelectStock }) {
             >
               Symbol{sortIcon("symbol")}
             </th>
-            <th className="sm-hide-mobile">Name</th>
+            <th>Name</th>
             <th
               onClick={() => handleSort("price")}
               className={sortCol === "price" ? "sorted" : ""}
@@ -136,7 +136,7 @@ export default function ShortInterest({ active, onSelectStock }) {
             </th>
             <th
               onClick={() => handleSort("sharesShort")}
-              className={`sm-hide-mobile${sortCol === "sharesShort" ? " sorted" : ""}`}
+              className={sortCol === "sharesShort" ? "sorted" : ""}
             >
               Shares Short{sortIcon("sharesShort")}
             </th>
@@ -158,7 +158,7 @@ export default function ShortInterest({ active, onSelectStock }) {
                 }
               >
                 <td className="sm-symbol">{s.symbol}</td>
-                <td className="sm-hide-mobile sm-name">{s.name}</td>
+                <td className="sm-name">{s.name}</td>
                 <td>${s.price?.toFixed(2)}</td>
                 <td
                   className={s.changePercent >= 0 ? "text-green" : "text-red"}
@@ -170,9 +170,7 @@ export default function ShortInterest({ active, onSelectStock }) {
                   {formatPercent(s.shortPercentOfFloat)}
                 </td>
                 <td>{s.shortRatio?.toFixed(1) ?? "—"}</td>
-                <td className="sm-hide-mobile">
-                  {formatShares(s.sharesShort)}
-                </td>
+                <td>{formatShares(s.sharesShort)}</td>
                 <td>
                   <div className="squeeze-cell">
                     <span className={`squeeze-label squeeze-${sq.color}`}>

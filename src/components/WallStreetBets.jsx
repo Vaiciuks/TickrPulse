@@ -197,7 +197,7 @@ export default function WallStreetBets({ active, onSelectStock }) {
               </th>
               <th
                 onClick={() => handleSort("name")}
-                className={`${sortCol === "name" ? "sorted" : ""} sm-hide-mobile`}
+                className={sortCol === "name" ? "sorted" : ""}
               >
                 Name{sortIcon("name")}
               </th>
@@ -215,7 +215,7 @@ export default function WallStreetBets({ active, onSelectStock }) {
               </th>
               <th
                 onClick={() => handleSort("mentionChange")}
-                className={`${sortCol === "mentionChange" ? "sorted" : ""} sm-hide-mobile`}
+                className={sortCol === "mentionChange" ? "sorted" : ""}
               >
                 24h Chg{sortIcon("mentionChange")}
               </th>
@@ -232,14 +232,14 @@ export default function WallStreetBets({ active, onSelectStock }) {
               <tr key={item.ticker} onClick={() => handleRowClick(item)}>
                 <td className="wsb-rank">{item.rank}</td>
                 <td className="sm-symbol">{item.ticker}</td>
-                <td className="sm-name sm-hide-mobile">{item.name}</td>
+                <td className="sm-name">{item.name}</td>
                 <td>{formatMentions(item.mentions)}</td>
                 <td>
                   <span className={`sentiment-badge ${item.sentiment}`}>
                     {sentimentLabel(item.sentiment)}
                   </span>
                 </td>
-                <td className="sm-hide-mobile">
+                <td>
                   <span
                     className={`wsb-mention-change ${item.mentionChange > 0 ? "positive" : item.mentionChange < 0 ? "negative" : ""}`}
                   >

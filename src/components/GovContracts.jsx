@@ -129,7 +129,7 @@ export default function GovContracts({ active, onSelectStock }) {
               >
                 Contracts{sortIcon("contractCount")}
               </th>
-              <th className="sm-hide-mobile">Latest Quarter</th>
+              <th>Latest Quarter</th>
             </tr>
           </thead>
           <tbody>
@@ -145,9 +145,7 @@ export default function GovContracts({ active, onSelectStock }) {
                   {formatAmount(c.totalAmount)}
                 </td>
                 <td>{c.contractCount}</td>
-                <td className="sm-hide-mobile sm-date">
-                  {c.latestQuarter || "---"}
-                </td>
+                <td className="sm-date">{c.latestQuarter || "---"}</td>
               </tr>
             ))}
           </tbody>

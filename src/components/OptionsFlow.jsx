@@ -141,7 +141,7 @@ export default function OptionsFlow({ active, onSelectStock }) {
               >
                 Symbol{sortIcon("symbol")}
               </th>
-              <th className="sm-hide-mobile">Price</th>
+              <th>Price</th>
               <th
                 onClick={() => handleSort("putCallRatio")}
                 className={sortCol === "putCallRatio" ? "sorted" : ""}
@@ -179,9 +179,7 @@ export default function OptionsFlow({ active, onSelectStock }) {
                   className={expanded === s.symbol ? "row-expanded" : ""}
                 >
                   <td className="sm-symbol">{s.symbol}</td>
-                  <td className="sm-hide-mobile">
-                    ${s.stockPrice?.toFixed(2)}
-                  </td>
+                  <td>${s.stockPrice?.toFixed(2)}</td>
                   <td>{s.putCallRatio ?? "—"}</td>
                   <td className="value-highlight">
                     {formatPremium(s.totalPremium)}

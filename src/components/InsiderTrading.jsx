@@ -119,7 +119,7 @@ export default function InsiderTrading({ active, onSelectStock }) {
             >
               Insider{sortIcon("insiderName")}
             </th>
-            <th className="sm-hide-mobile">Title</th>
+            <th>Title</th>
             <th>Type</th>
             <th
               onClick={() => handleSort("price")}
@@ -151,7 +151,7 @@ export default function InsiderTrading({ active, onSelectStock }) {
               <td className="sm-date">{trade.tradeDate || trade.filingDate}</td>
               <td className="sm-symbol">{trade.symbol}</td>
               <td className="sm-name">{trade.insiderName}</td>
-              <td className="sm-hide-mobile sm-title">{trade.title}</td>
+              <td className="sm-title">{trade.title}</td>
               <td>
                 <span
                   className={`sentiment-badge ${trade.isBuy ? "bullish" : "bearish"}`}

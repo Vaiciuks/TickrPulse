@@ -178,13 +178,13 @@ export default function CongressTrading({ active, onSelectStock }) {
               <th>Type</th>
               <th
                 onClick={() => handleSort("amount")}
-                className={`${sortCol === "amount" ? "sorted" : ""} sm-hide-mobile`}
+                className={sortCol === "amount" ? "sorted" : ""}
               >
                 Amount{sortIcon("amount")}
               </th>
               <th
                 onClick={() => handleSort("filingDate")}
-                className={`${sortCol === "filingDate" ? "sorted" : ""} sm-hide-mobile`}
+                className={sortCol === "filingDate" ? "sorted" : ""}
               >
                 Filed{sortIcon("filingDate")}
               </th>
@@ -220,8 +220,8 @@ export default function CongressTrading({ active, onSelectStock }) {
                     {trade.type === "Buy" ? "BUY" : "SELL"}
                   </span>
                 </td>
-                <td className="sm-hide-mobile">{trade.amount}</td>
-                <td className="sm-hide-mobile sm-date">{trade.filingDate}</td>
+                <td>{trade.amount}</td>
+                <td className="sm-date">{trade.filingDate}</td>
                 <td
                   className={`congress-delay ${delayClass(trade.reportingDelay)}`}
                 >
