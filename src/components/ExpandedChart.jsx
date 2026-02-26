@@ -1098,38 +1098,6 @@ export default function ExpandedChart({
         candleSeriesRef.current.setData(chartData);
       }
 
-      // ── High / Low price markers ──
-      if (chartData.length > 1) {
-        let hiIdx = 0;
-        let loIdx = 0;
-        for (let i = 1; i < chartData.length; i++) {
-          if (chartData[i].high > chartData[hiIdx].high) hiIdx = i;
-          if (chartData[i].low < chartData[loIdx].low) loIdx = i;
-        }
-        const markers = [
-          {
-            time: chartData[hiIdx].time,
-            position: "aboveBar",
-            color: "#00d66b",
-            shape: "circle",
-            size: 0.5,
-            text: formatPrice(chartData[hiIdx].high),
-          },
-          {
-            time: chartData[loIdx].time,
-            position: "belowBar",
-            color: "#ff2952",
-            shape: "circle",
-            size: 0.5,
-            text: formatPrice(chartData[loIdx].low),
-          },
-        ];
-        // lightweight-charts requires markers sorted by time
-        markers.sort((a, b) =>
-          a.time < b.time ? -1 : a.time > b.time ? 1 : 0,
-        );
-        candleSeriesRef.current.setMarkers(markers);
-      }
     }
     if (volumeSeriesRef.current) {
       volumeSeriesRef.current.setData(
@@ -1245,6 +1213,73 @@ export default function ExpandedChart({
     stock.symbol,
     chartType,
   ]);
+
+  // ── High / Low visible-range markers ──
+  // Recalculates whenever the visible window changes (scroll, zoom, new data)
+  useEffect(() => {
+    const chart = mainChartRef.current;
+    const series = candleSeriesRef.current;
+    if (!chart || !series || !data || data.length === 0) return;
+
+    const chartData = aggregateCandles(data, activeTf.aggregate || 1);
+    if (chartData.length < 2) return;
+
+    const updateMarkers = () => {
+      const range = chart.timeScale().getVisibleLogicalRange();
+      if (!range) return;
+
+      const from = Math.max(0, Math.floor(range.from));
+      const to = Math.min(chartData.length - 1, Math.ceil(range.to));
+      if (from >= to) return;
+
+      let hiIdx = from;
+      let loIdx = from;
+      for (let i = from + 1; i <= to; i++) {
+        if (chartData[i] && chartData[i].high > chartData[hiIdx].high)
+          hiIdx = i;
+        if (chartData[i] && chartData[i].low < chartData[loIdx].low)
+          loIdx = i;
+      }
+
+      const markers = [
+        {
+          time: chartData[hiIdx].time,
+          position: "aboveBar",
+          color: "#00d66b",
+          shape: "circle",
+          size: 0.5,
+          text: formatPrice(chartData[hiIdx].high),
+        },
+        {
+          time: chartData[loIdx].time,
+          position: "belowBar",
+          color: "#ff2952",
+          shape: "circle",
+          size: 0.5,
+          text: formatPrice(chartData[loIdx].low),
+        },
+      ];
+      // lightweight-charts requires markers sorted by time
+      markers.sort((a, b) =>
+        a.time < b.time ? -1 : a.time > b.time ? 1 : 0,
+      );
+      series.setMarkers(markers);
+    };
+
+    // Initial update
+    updateMarkers();
+
+    // Update when user scrolls or zooms
+    chart.timeScale().subscribeVisibleLogicalRangeChange(updateMarkers);
+
+    return () => {
+      try {
+        chart.timeScale().unsubscribeVisibleLogicalRangeChange(updateMarkers);
+      } catch (_) {
+        /* chart may already be destroyed */
+      }
+    };
+  }, [data, activeTf.aggregate, chartType, chartVersion]);
 
   // Keep drawMode ref in sync for click handler
   useEffect(() => {
