@@ -659,56 +659,25 @@ export default function Footer() {
     <>
       <footer className="app-footer">
         <div className="app-footer-inner">
-          <div className="app-footer-links">
-            <button
-              className="app-footer-link"
-              onClick={() => setActiveModal("contact")}
-            >
-              Contact
-            </button>
-            <span className="app-footer-sep">&middot;</span>
-            <button
-              className="app-footer-link"
-              onClick={() => setActiveModal("privacy")}
-            >
-              Privacy
-            </button>
-            <span className="app-footer-sep">&middot;</span>
-            <button
-              className="app-footer-link"
-              onClick={() => setActiveModal("terms")}
-            >
-              Terms & Disclaimer
-            </button>
-            <span className="app-footer-sep">&middot;</span>
-            <button
-              className="app-footer-link"
-              onClick={() => setActiveModal("donotsell")}
-            >
-              Do Not Sell My Personal Information
-            </button>
-          </div>
-          <div className="app-footer-stocks">
-            <div className="app-footer-stocks-label">Popular Stocks</div>
-            <div className="app-footer-stocks-grid">
-              {[
-                'AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','JPM','V','JNJ',
-                'WMT','UNH','PG','XOM','HD','MA','BAC','AVGO','COST','NFLX',
-                'AMD','CRM','ABBV','LLY','MRK','PEP','KO','INTC','DIS','BA',
-                'NKE','UBER','PLTR','SBUX','GS','CAT','GE','CVX','MCD','QCOM',
-                'SPY','QQQ','IWM','VOO',
-              ].map(sym => (
+          <div className="app-footer-row">
+            <div className="app-footer-links">
+              <button className="app-footer-link" onClick={() => setActiveModal("contact")}>Contact</button>
+              <span className="app-footer-sep">&middot;</span>
+              <button className="app-footer-link" onClick={() => setActiveModal("privacy")}>Privacy</button>
+              <span className="app-footer-sep">&middot;</span>
+              <button className="app-footer-link" onClick={() => setActiveModal("terms")}>Terms</button>
+              <span className="app-footer-sep">&middot;</span>
+              <button className="app-footer-link" onClick={() => setActiveModal("donotsell")}>Do Not Sell</button>
+            </div>
+            <div className="app-footer-stocks">
+              {['AAPL','MSFT','GOOGL','AMZN','NVDA','TSLA','META','AMD','NFLX','PLTR','SPY','QQQ'].map(sym => (
                 <a key={sym} href={`/stock/${sym}`} className="app-footer-stock-link">{sym}</a>
               ))}
             </div>
           </div>
-          <div className="app-footer-copy">
-            Quotes delayed 15 min for NASDAQ, NYSE, and AMEX. Not financial
-            advice.
-          </div>
-          <div className="app-footer-copy">
-            &copy; {year} <span className="app-footer-brand">TickrView</span>.
-            All rights reserved.
+          <div className="app-footer-row">
+            <span className="app-footer-disclaimer">Quotes delayed 15 min for NASDAQ, NYSE, and AMEX. Not financial advice.</span>
+            <span className="app-footer-copy">&copy; {year} <span className="app-footer-brand">TickrView</span>. All rights reserved.</span>
           </div>
         </div>
       </footer>

@@ -4902,6 +4902,8 @@ textarea {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Earnings Calendar (Perplexity-style) ── */
@@ -4910,6 +4912,8 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
 }
 
 .ecal-header {
@@ -5079,7 +5083,9 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 480px;
+  flex: 1;
+  min-height: 0;
+  max-height: calc(100vh - 340px);
   overflow-y: auto;
 }
 
@@ -6452,6 +6458,10 @@ textarea {
     gap: 12px;
   }
 
+  .ecal-list {
+    max-height: 480px;
+  }
+
   .earnings-main .smartmoney-tab-toggle {
     width: auto;
   }
@@ -6597,6 +6607,10 @@ textarea {
     overflow-y: visible;
     padding: 16px 12px;
     gap: 12px;
+  }
+
+  .ecal-list {
+    max-height: 480px;
   }
 
   .ecal-strip {
@@ -7038,7 +7052,7 @@ textarea {
   flex-shrink: 0;
   border-top: 1px solid var(--border-primary);
   background: var(--bg-card);
-  padding: 12px 24px;
+  padding: 14px 24px;
   font-size: 0.75rem;
   color: var(--text-tertiary);
 }
@@ -7047,10 +7061,15 @@ textarea {
   max-width: 1400px;
   margin: 0 auto;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.app-footer-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
 }
 
 .app-footer-links {
@@ -7081,34 +7100,14 @@ textarea {
 }
 
 .app-footer-stocks {
-  width: 100%;
-  margin-bottom: 14px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-[data-theme="light"] .app-footer-stocks {
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-}
-
-.app-footer-stocks-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-
-.app-footer-stocks-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
+  align-items: center;
+  gap: 10px;
 }
 
 .app-footer-stock-link {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--text-dim);
   text-decoration: none;
   font-family: var(--font-mono);
   transition: color 0.15s;
@@ -7116,6 +7115,12 @@ textarea {
 
 .app-footer-stock-link:hover {
   color: var(--accent);
+}
+
+.app-footer-disclaimer {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  font-size: 0.7rem;
 }
 
 .app-footer-copy {
@@ -7380,10 +7385,20 @@ textarea {
     padding: 10px 12px;
   }
 
-  .app-footer-inner {
+  .app-footer-row {
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     text-align: center;
+  }
+
+  .app-footer-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .app-footer-stocks {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .contact-form-row {
@@ -7396,11 +7411,6 @@ textarea {
 
   .legal-modal {
     max-height: 85vh;
-  }
-
-  .app-footer-links {
-    flex-wrap: wrap;
-    justify-content: center;
   }
 }
 
