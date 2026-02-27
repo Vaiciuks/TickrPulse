@@ -717,7 +717,17 @@ export default function ExpandedChart({
     candleSeriesRef.current = mainSeries;
 
     const volumeSeries = chart.addHistogramSeries({
-      priceFormat: { type: "volume" },
+      priceFormat: {
+        type: "custom",
+        formatter: (sqrtVal) => {
+          const vol = sqrtVal * sqrtVal;
+          if (vol >= 1e9) return (vol / 1e9).toFixed(1) + "B";
+          if (vol >= 1e6) return (vol / 1e6).toFixed(1) + "M";
+          if (vol >= 1e3) return (vol / 1e3).toFixed(0) + "K";
+          return Math.round(vol).toString();
+        },
+        minMove: 0.01,
+      },
       priceScaleId: "volume",
     });
     chart
@@ -1103,24 +1113,29 @@ export default function ExpandedChart({
 
     }
     if (volumeSeriesRef.current) {
-      const volBars = chartData.filter((d) => d.volume > 0);
-      if (volBars.length > 0) {
-        // Cap outlier volumes so one extreme bar doesn't crush the scale.
-        // Yahoo often lumps pre-market volume into the opening 1m candle,
-        // creating a single bar 10-15× larger than the rest.
-        const sorted = volBars.map((d) => d.volume).sort((a, b) => a - b);
-        const median = sorted[Math.floor(sorted.length / 2)];
-        const cap = median * 3;
+      const withVol = chartData.filter((d) => d.volume > 0);
+      if (withVol.length > 0) {
+        const hasVol = chartData.map((d) => (d.volume || 0) > 0);
+        const minVol = Math.min(...withVol.map((d) => d.volume));
+        const floor = minVol * 0.1;
 
         volumeSeriesRef.current.setData(
-          volBars.map((d) => ({
-            time: d.time,
-            value: Math.min(d.volume, cap),
-            color:
-              d.close >= d.open
-                ? "rgba(0,200,83,0.5)"
-                : "rgba(255,23,68,0.5)",
-          })),
+          chartData
+            .filter((d, i) => {
+              if (d.volume > 0) return true;
+              // Only fill gaps sandwiched between real-volume candles
+              const prev = i > 0 && hasVol[i - 1];
+              const next = i < chartData.length - 1 && hasVol[i + 1];
+              return prev && next;
+            })
+            .map((d) => ({
+              time: d.time,
+              value: Math.sqrt(Math.max(d.volume || 0, floor)),
+              color:
+                d.close >= d.open
+                  ? "rgba(0,200,83,0.5)"
+                  : "rgba(255,23,68,0.5)",
+            })),
         );
       } else {
         volumeSeriesRef.current.setData([]);
