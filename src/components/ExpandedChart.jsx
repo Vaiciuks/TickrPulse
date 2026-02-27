@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { createChart, ColorType, CrosshairMode } from "lightweight-charts";
 import { useScrollLock } from "../hooks/useScrollLock.js";
@@ -405,14 +405,47 @@ function loadTimeframe(symbol) {
   }
 }
 
-function saveTimeframe(symbol, minuteIdx, rangeIdx) {
+function saveTimeframe(symbol, minuteIdx, rangeIdx, indicators, chartType) {
   try {
     const map = JSON.parse(localStorage.getItem(TF_STORAGE_KEY)) || {};
-    map[symbol] = { minuteIdx, rangeIdx };
+    const prev = map[symbol] || {};
+    map[symbol] = {
+      minuteIdx: minuteIdx !== undefined ? minuteIdx : prev.minuteIdx,
+      rangeIdx: rangeIdx !== undefined ? rangeIdx : prev.rangeIdx,
+      ...(indicators !== undefined && { indicators }),
+      ...(chartType !== undefined && { chartType }),
+    };
     // Keep map from growing unbounded — trim to last 50 symbols
     const keys = Object.keys(map);
     if (keys.length > 50) delete map[keys[0]];
     localStorage.setItem(TF_STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+const DRAWINGS_STORAGE_KEY = "tickrview-drawings";
+
+function loadDrawings(symbol, tfLabel) {
+  try {
+    const map = JSON.parse(localStorage.getItem(DRAWINGS_STORAGE_KEY)) || {};
+    return map[`${symbol}:${tfLabel}`] || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDrawingsToStorage(symbol, tfLabel, drawings) {
+  try {
+    const map = JSON.parse(localStorage.getItem(DRAWINGS_STORAGE_KEY)) || {};
+    // Serialize to storable shape (strip LWC refs)
+    map[`${symbol}:${tfLabel}`] = drawings.map((d) => {
+      if (d.type === "hline") return { type: "hline", price: d.price };
+      if (d.type === "fib") return { type: "fib", points: d.points };
+      return { type: d.type, points: d.points };
+    });
+    // Trim to last 100 entries
+    const keys = Object.keys(map);
+    if (keys.length > 100) delete map[keys[0]];
+    localStorage.setItem(DRAWINGS_STORAGE_KEY, JSON.stringify(map));
   } catch {}
 }
 
@@ -478,13 +511,16 @@ export default function ExpandedChart({
     if (saved && saved.rangeIdx != null) return saved.rangeIdx;
     return null;
   });
-  const [indicators, setIndicators] = useState({
-    ema: false,
-    vwap: false,
-    rsi: false,
-    macd: false,
+  const [indicators, setIndicators] = useState(() => {
+    if (!session) return { ema: false, vwap: false, rsi: false, macd: false };
+    const saved = loadTimeframe(stock.symbol);
+    return saved?.indicators || { ema: false, vwap: false, rsi: false, macd: false };
   });
-  const [chartType, setChartType] = useState("candle");
+  const [chartType, setChartType] = useState(() => {
+    if (!session) return "candle";
+    const saved = loadTimeframe(stock.symbol);
+    return saved?.chartType || "candle";
+  });
   const [chartVersion, setChartVersion] = useState(0);
   const [activePanel, setActivePanel] = useState(null);
   const panelRef = useRef(null);
@@ -643,6 +679,19 @@ export default function ExpandedChart({
   };
   const toggleIndicator = (key) =>
     setIndicators((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // Persist indicators + chartType when they change
+  useEffect(() => {
+    if (session) saveTimeframe(stock.symbol, undefined, undefined, indicators, chartType);
+  }, [indicators, chartType, session, stock.symbol]);
+
+  // Auto-save drawings (debounced)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      saveDrawingsToStorage(stock.symbol, activeTf.label, drawings);
+    }, 500);
+    return () => clearTimeout(id);
+  }, [drawings, stock.symbol, activeTf.label]);
 
   // Sync time scales: main -> sub-charts
   const syncFromMain = useCallback((range) => {
@@ -1093,12 +1142,37 @@ export default function ExpandedChart({
     };
   }, [effectiveIndicators.macd, isIntraday, syncToMain]);
 
+  // ── Memoised indicator calculations ──
+  // Keyed on data identity + toggle state so indicator math is skipped when
+  // unrelated deps change (e.g. chartType toggle doesn't recalc indicators).
+  const chartData = useMemo(
+    () => (data && data.length > 0 ? aggregateCandles(data, activeTf.aggregate || 1) : []),
+    [data, activeTf.aggregate],
+  );
+  const ema9Data = useMemo(
+    () => (effectiveIndicators.ema && chartData.length > 0 ? calcEMA(chartData, 9) : []),
+    [chartData, effectiveIndicators.ema],
+  );
+  const ema21Data = useMemo(
+    () => (effectiveIndicators.ema && chartData.length > 0 ? calcEMA(chartData, 21) : []),
+    [chartData, effectiveIndicators.ema],
+  );
+  const vwapData = useMemo(
+    () => (effectiveIndicators.vwap && chartData.length > 0 ? calcVWAP(chartData) : []),
+    [chartData, effectiveIndicators.vwap],
+  );
+  const rsiData = useMemo(
+    () => (effectiveIndicators.rsi && chartData.length > 0 ? calcRSI(chartData, 14) : []),
+    [chartData, effectiveIndicators.rsi],
+  );
+  const macdResult = useMemo(
+    () => (effectiveIndicators.macd && chartData.length > 0 ? calcMACD(chartData) : null),
+    [chartData, effectiveIndicators.macd],
+  );
+
   // ── Update all series data ──
   useEffect(() => {
-    if (!data || data.length === 0) return;
-
-    // Aggregate candles for 2h/4h timeframes (Yahoo only provides 1h)
-    const chartData = aggregateCandles(data, activeTf.aggregate || 1);
+    if (chartData.length === 0) return;
 
     // Main chart data — format depends on chart type
     if (candleSeriesRef.current) {
@@ -1143,27 +1217,16 @@ export default function ExpandedChart({
       }
     }
 
-    // EMA overlays
-    if (ema9Ref.current)
-      ema9Ref.current.setData(
-        effectiveIndicators.ema ? calcEMA(chartData, 9) : [],
-      );
-    if (ema21Ref.current)
-      ema21Ref.current.setData(
-        effectiveIndicators.ema ? calcEMA(chartData, 21) : [],
-      );
+    // EMA overlays (memoised)
+    if (ema9Ref.current) ema9Ref.current.setData(ema9Data);
+    if (ema21Ref.current) ema21Ref.current.setData(ema21Data);
 
-    // VWAP overlay
-    if (vwapRef.current)
-      vwapRef.current.setData(
-        effectiveIndicators.vwap ? calcVWAP(chartData) : [],
-      );
+    // VWAP overlay (memoised)
+    if (vwapRef.current) vwapRef.current.setData(vwapData);
 
-    // RSI sub-chart
-    if (effectiveIndicators.rsi && rsiSeriesRef.current) {
-      const rsiData = calcRSI(chartData, 14);
+    // RSI sub-chart (memoised)
+    if (rsiSeriesRef.current) {
       rsiSeriesRef.current.setData(rsiData);
-      // Overbought/oversold horizontal lines
       if (rsiData.length > 0 && rsiSeriesRef.current._obLine) {
         const times = rsiData.map((d) => d.time);
         rsiSeriesRef.current._obLine.setData(
@@ -1175,12 +1238,11 @@ export default function ExpandedChart({
       }
     }
 
-    // MACD sub-chart
-    if (effectiveIndicators.macd && macdLineRef.current) {
-      const { macd, signal, histogram } = calcMACD(chartData);
-      macdLineRef.current.setData(macd);
-      macdSignalRef.current.setData(signal);
-      macdHistRef.current.setData(histogram);
+    // MACD sub-chart (memoised)
+    if (macdResult && macdLineRef.current) {
+      macdLineRef.current.setData(macdResult.macd);
+      macdSignalRef.current.setData(macdResult.signal);
+      macdHistRef.current.setData(macdResult.histogram);
     }
 
     // Forward-looking session projection (minute stock charts only, not crypto/range)
@@ -1239,8 +1301,12 @@ export default function ExpandedChart({
       fittedTfRef.current = tfKey;
     }
   }, [
-    data,
-    effectiveIndicators,
+    chartData,
+    ema9Data,
+    ema21Data,
+    vwapData,
+    rsiData,
+    macdResult,
     activeTf.interval,
     minuteIdx,
     stock.symbol,
@@ -1252,10 +1318,7 @@ export default function ExpandedChart({
   useEffect(() => {
     const chart = mainChartRef.current;
     const series = candleSeriesRef.current;
-    if (!chart || !series || !data || data.length === 0) return;
-
-    const chartData = aggregateCandles(data, activeTf.aggregate || 1);
-    if (chartData.length < 2) return;
+    if (!chart || !series || chartData.length < 2) return;
 
     const updateMarkers = () => {
       const range = chart.timeScale().getVisibleLogicalRange();
@@ -1312,7 +1375,7 @@ export default function ExpandedChart({
         /* chart may already be destroyed */
       }
     };
-  }, [data, activeTf.aggregate, chartType, chartVersion]);
+  }, [chartData, chartType, chartVersion]);
 
   // Keep drawMode ref in sync for click handler
   useEffect(() => {
@@ -1339,11 +1402,107 @@ export default function ExpandedChart({
   // Store chart data in ref so drawing click handler can access it
   const chartDataRef = useRef([]);
   useEffect(() => {
-    if (data && data.length > 0) {
-      const agg = aggregateCandles(data, activeTf.aggregate || 1);
-      chartDataRef.current = agg;
+    if (chartData.length > 0) chartDataRef.current = chartData;
+  }, [chartData]);
+
+  // ── Restore persisted drawings when chart + data are ready ──
+  const restoredDrawingsRef = useRef(null);
+  useEffect(() => {
+    const chart = mainChartRef.current;
+    const candle = candleSeriesRef.current;
+    if (!chart || !candle || chartData.length === 0 || compact) return;
+
+    const key = `${stock.symbol}:${activeTf.label}:${chartVersion}`;
+    if (restoredDrawingsRef.current === key) return;
+    restoredDrawingsRef.current = key;
+
+    const saved = loadDrawings(stock.symbol, activeTf.label);
+    if (saved.length === 0) return;
+
+    const restored = [];
+    for (const d of saved) {
+      try {
+        if (d.type === "hline" && d.price != null) {
+          const line = candle.createPriceLine({
+            price: d.price,
+            color: "#ffeb3b",
+            lineWidth: 1,
+            lineStyle: 2,
+            axisLabelVisible: true,
+            title: "",
+          });
+          restored.push({ type: "hline", price: d.price, ref: line });
+
+        } else if (d.type === "fib" && d.points?.length === 2) {
+          const high = Math.max(d.points[0].price, d.points[1].price);
+          const low = Math.min(d.points[0].price, d.points[1].price);
+          const diff = high - low;
+          const fibLines = FIB_LEVELS.map((level, i) => {
+            const fibPrice = high - diff * level;
+            return candle.createPriceLine({
+              price: fibPrice,
+              color: FIB_COLORS[i],
+              lineWidth: 1,
+              lineStyle: 2,
+              axisLabelVisible: true,
+              title: `${(level * 100).toFixed(1)}%`,
+            });
+          });
+          restored.push({ type: "fib", refs: fibLines, points: d.points });
+
+        } else if ((d.type === "trend" || d.type === "ray") && d.points?.length === 2) {
+          const p1 = d.points[0];
+          const p2 = d.points[1];
+          const isRay = d.type === "ray";
+          const color = isRay ? "#42a5f5" : "#ffeb3b";
+          const trendSeries = chart.addLineSeries({
+            color,
+            lineWidth: isRay ? 2 : 1,
+            lineStyle: isRay ? 0 : 2,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            crosshairMarkerVisible: false,
+          });
+
+          if (isRay) {
+            const idx1 = chartData.findIndex((c) => c.time >= p1.time);
+            const idx2 = chartData.findIndex((c) => c.time >= p2.time);
+            if (idx1 >= 0 && idx2 > idx1) {
+              const slopePerBar = (p2.price - p1.price) / (idx2 - idx1);
+              const points = [];
+              for (let i = idx1; i < chartData.length; i++) {
+                points.push({
+                  time: chartData[i].time,
+                  value: p1.price + slopePerBar * (i - idx1),
+                });
+              }
+              trendSeries.setData(points);
+            } else {
+              trendSeries.setData([
+                { time: p1.time, value: p1.price },
+                { time: p2.time, value: p2.price },
+              ]);
+            }
+            try { trendSeries.applyOptions({ autoscaleInfoProvider: () => null }); } catch {}
+          } else {
+            trendSeries.setData([
+              { time: p1.time, value: p1.price },
+              { time: p2.time, value: p2.price },
+            ]);
+          }
+
+          trendSeries.setMarkers([
+            { time: p1.time, position: "inBar", color, shape: "circle", size: 0.5 },
+            { time: p2.time, position: "inBar", color, shape: "circle", size: 0.5 },
+          ]);
+          restored.push({ type: d.type, series: trendSeries, points: d.points });
+        }
+      } catch {
+        // Skip drawings that fail to restore (e.g. timestamps no longer in dataset)
+      }
     }
-  }, [data, activeTf.aggregate]);
+    if (restored.length > 0) setDrawings(restored);
+  }, [chartData, chartVersion, stock.symbol, activeTf.label, compact]);
 
   // Drawing tools click handler — uses chartVersion to re-subscribe when chart is recreated
   useEffect(() => {
@@ -1505,7 +1664,11 @@ export default function ExpandedChart({
                 title: `${(level * 100).toFixed(1)}%`,
               });
             });
-            setDrawings((prev) => [...prev, { type: "fib", refs: fibLines }]);
+            setDrawings((prev) => [...prev, {
+              type: "fib",
+              refs: fibLines,
+              points: [{ time: start.time, price: start.price }, { time: clickTime, price }],
+            }]);
           } else {
             // Trendline or Ray
             const isRay = mode === "ray";
@@ -1566,7 +1729,7 @@ export default function ExpandedChart({
               } catch {}
               setDrawings((prev) => [
                 ...prev,
-                { type: "ray", series: trendSeries },
+                { type: "ray", series: trendSeries, points: [{ time: p1.time, price: p1.price }, { time: p2.time, price: p2.price }] },
               ]);
             } else {
               // Trendline — just two points
@@ -1576,7 +1739,7 @@ export default function ExpandedChart({
               ]);
               setDrawings((prev) => [
                 ...prev,
-                { type: "trend", series: trendSeries },
+                { type: "trend", series: trendSeries, points: [{ time: p1.time, price: p1.price }, { time: p2.time, price: p2.price }] },
               ]);
             }
 
