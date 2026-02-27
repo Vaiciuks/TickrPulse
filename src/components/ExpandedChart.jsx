@@ -675,7 +675,7 @@ export default function ExpandedChart({
       makeChartOptions(container, {
         timeVisible: isIntraday,
         timeScaleVisible: !effectiveIndicators.rsi && !effectiveIndicators.macd,
-        scaleMargins: { top: 0.08, bottom: 0.25 },
+        scaleMargins: { top: 0.08, bottom: 0.18 },
       }),
     );
 
@@ -723,7 +723,7 @@ export default function ExpandedChart({
     chart
       .priceScale("volume")
       .applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
+        scaleMargins: { top: 0.88, bottom: 0 },
         drawTicks: false,
         borderVisible: false,
       });
@@ -784,7 +784,10 @@ export default function ExpandedChart({
         setCrosshairPoint({ x: param.point.x, y: param.point.y });
       }
       const d = param.seriesData.get(candleSeriesRef.current);
-      const vol = param.seriesData.get(volumeSeriesRef.current);
+      // Look up real volume from chart data (histogram values may be capped)
+      const cd = chartDataRef.current;
+      const match = cd.find((c) => c.time === param.time);
+      const realVol = match?.volume || 0;
       if (d) {
         // Line/Area series return { time, value }, OHLC series return { open, high, low, close }
         if (d.open != null) {
@@ -793,7 +796,7 @@ export default function ExpandedChart({
             high: d.high,
             low: d.low,
             close: d.close,
-            volume: vol?.value || 0,
+            volume: realVol,
             isUp: d.close >= d.open,
           });
         } else if (d.value != null) {
@@ -802,7 +805,7 @@ export default function ExpandedChart({
             high: d.value,
             low: d.value,
             close: d.value,
-            volume: vol?.value || 0,
+            volume: realVol,
             isUp: true,
           });
         }
@@ -1100,14 +1103,28 @@ export default function ExpandedChart({
 
     }
     if (volumeSeriesRef.current) {
-      volumeSeriesRef.current.setData(
-        chartData.map((d) => ({
-          time: d.time,
-          value: d.volume || 0,
-          color:
-            d.close >= d.open ? "rgba(0,200,83,0.15)" : "rgba(255,23,68,0.15)",
-        })),
-      );
+      const volBars = chartData.filter((d) => d.volume > 0);
+      if (volBars.length > 0) {
+        // Cap outlier volumes so one extreme bar doesn't crush the scale.
+        // Yahoo often lumps pre-market volume into the opening 1m candle,
+        // creating a single bar 10-15× larger than the rest.
+        const sorted = volBars.map((d) => d.volume).sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)];
+        const cap = median * 3;
+
+        volumeSeriesRef.current.setData(
+          volBars.map((d) => ({
+            time: d.time,
+            value: Math.min(d.volume, cap),
+            color:
+              d.close >= d.open
+                ? "rgba(0,200,83,0.5)"
+                : "rgba(255,23,68,0.5)",
+          })),
+        );
+      } else {
+        volumeSeriesRef.current.setData([]);
+      }
     }
 
     // EMA overlays
@@ -1188,7 +1205,7 @@ export default function ExpandedChart({
       // Reset price scale to consistent margins for every chart
       mainChartRef.current.priceScale("right").applyOptions({
         autoScale: true,
-        scaleMargins: { top: 0.08, bottom: 0.25 },
+        scaleMargins: { top: 0.08, bottom: 0.18 },
       });
 
       const visibleBars = activeTf.visibleBars;
