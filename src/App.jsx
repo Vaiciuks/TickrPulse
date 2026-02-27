@@ -630,9 +630,9 @@ export default function App() {
           )}
           </Suspense>
           </TabErrorBoundary>
-          <Footer onSelectStock={handleEarningsClick} />
         </div>
       </div>
+      <Footer onSelectStock={handleEarningsClick} />
       {expandedStock && gridStocks.length === 0 && (
         <Suspense fallback={<LoadingState />}>
           <ExpandedChart
