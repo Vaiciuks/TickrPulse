@@ -639,9 +639,7 @@ export default function App() {
             stock={expandedStock}
             onClose={() => {
               setExpandedStock(null);
-              if (window.location.pathname.startsWith('/stock/')) {
-                window.history.pushState({ tab: activeTab, stock: null }, '', `#${activeTab}`);
-              }
+              window.history.replaceState({ tab: activeTab, stock: null }, '', `#${activeTab}`);
             }}
             isFavorite={isFavorite(expandedStock.symbol)}
             onToggleFavorite={() => toggleFavorite(expandedStock.symbol)}
