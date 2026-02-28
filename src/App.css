@@ -6070,10 +6070,39 @@ textarea {
   padding: 0 14px;
 }
 
-/* ── Narrowing desktop: hide digest banner to save space ── */
-@media (max-width: 1200px) and (min-width: 1025px) {
-  .header-right .digest-banner,
-  .header-right .digest-banner-spacer {
+/* Hide digest from header-right on desktop — it lives in its own strip now */
+.header-right .digest-banner,
+.header-right .digest-banner-spacer {
+  display: none;
+}
+
+/* Full-width desktop digest strip below header */
+.digest-banner-desktop {
+  padding: 0 24px;
+}
+
+.digest-banner-desktop .digest-banner {
+  max-width: 1400px;
+  margin: 0 auto;
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 4px 0;
+  box-shadow: none;
+}
+
+.digest-banner-desktop .digest-banner:hover {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.digest-banner-desktop .digest-banner-text {
+  font-size: 13px;
+}
+
+@media (max-width: 1024px) {
+  .digest-banner-desktop {
     display: none;
   }
 }
